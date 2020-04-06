@@ -22,7 +22,7 @@ fn main() {
 
         let d_rg = Material::<U12, f32>::new(
             Beam::default(),
-            &Beam::red() * 0.2 + Beam::green(),
+            Beam::red() + Beam::green(),
             Beam::default(),
             Beam::default(),
             Beam::default(),

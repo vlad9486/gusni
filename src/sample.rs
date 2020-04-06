@@ -73,7 +73,6 @@ impl Sample {
         for i in 0..self.size.vertical_count {
             for j in 0..self.size.horizontal_count {
                 for frequency in 0..N::to_usize() {
-                    //dbg!("here", i, j, frequency);
                     let dx = rng.gen_range(-0.5, 0.5);
                     let dy = rng.gen_range(-0.5, 0.5);
                     let x = C::from(j).unwrap() + C::from(dx).unwrap();
@@ -81,6 +80,7 @@ impl Sample {
                     let ray = eye.ray(x, y, &self.size, frequency);
                     let photon_number = ray.trace(scene, rng) as Density;
                     let index = (i * self.size.horizontal_count + j) as usize;
+                    let frequency = frequency * Rgb::SIZE / N::to_usize();
                     self.data[index] += Rgb::monochromatic(frequency) * photon_number;
                 }
             }

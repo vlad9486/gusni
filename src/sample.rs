@@ -6,9 +6,10 @@ use num::Float;
 use rand::Rng;
 use generic_array::ArrayLength;
 
+#[derive(Serialize, Deserialize)]
 pub struct Size {
-    pub horizontal_count: usize,
-    pub vertical_count: usize,
+    pub horizontal_count: u64,
+    pub vertical_count: u64,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -39,15 +40,16 @@ where
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Sample {
     size: Size,
-    sample_count: usize,
+    sample_count: u64,
     data: Vec<Rgb>,
 }
 
 impl Sample {
     pub fn new(size: Size) -> Self {
-        let capacity = size.horizontal_count * size.vertical_count;
+        let capacity = (size.horizontal_count * size.vertical_count) as usize;
         let mut data = Vec::with_capacity(capacity);
         data.resize(capacity, Rgb::default());
         Sample {
@@ -73,7 +75,7 @@ impl Sample {
                     let y = C::from(i).unwrap() + C::from(dy).unwrap();
                     let ray = eye.ray(x, y, &self.size, frequency);
                     let photon_number = ray.trace(scene, rng) as Density;
-                    let index = i * self.size.horizontal_count + j;
+                    let index = (i * self.size.horizontal_count + j) as usize;
                     self.data[index] += Rgb::monochromatic(frequency) * photon_number;
                 }
             }
@@ -83,7 +85,7 @@ impl Sample {
     }
 
     pub fn bitmap(&self, scale: Density) -> Vec<u8> {
-        let capacity = 3 * self.size.horizontal_count * self.size.vertical_count;
+        let capacity = (3 * self.size.horizontal_count * self.size.vertical_count) as usize;
         let mut b = Vec::with_capacity(capacity);
         let to_byte = |a: Density| -> u8 {
             if a > 1.0 {

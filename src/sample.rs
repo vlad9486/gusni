@@ -73,6 +73,7 @@ impl Sample {
         for i in 0..self.size.vertical_count {
             for j in 0..self.size.horizontal_count {
                 for frequency in 0..N::to_usize() {
+                    //dbg!("here", i, j, frequency);
                     let dx = rng.gen_range(-0.5, 0.5);
                     let dy = rng.gen_range(-0.5, 0.5);
                     let x = C::from(j).unwrap() + C::from(dx).unwrap();

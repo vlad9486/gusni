@@ -23,14 +23,11 @@ where
     where
         I: Iterator<Item = &'a Self>,
     {
-        v
-            .flat_map(|this| match this.intersect(ray) {
-                Some(info) => Some((this, info)),
-                None => None,
-            })
-            .min_by(|lhs, rhs| {
-                lhs.1.partial_cmp(&rhs.1).unwrap_or(Ordering::Less)
-            })
+        v.flat_map(|this| match this.intersect(ray) {
+            Some(info) => Some((this, info)),
+            None => None,
+        })
+        .min_by(|lhs, rhs| lhs.1.partial_cmp(&rhs.1).unwrap_or(Ordering::Less))
     }
 }
 
@@ -41,8 +38,7 @@ where
     S: Surface<N, C>,
 {
     fn find_intersect<'a>(&'a self, ray: &Ray<C>) -> Option<Intersect<'a, N, C>> {
-        Surface::find_intersect(self.iter(), ray)
-            .map(|(this, info)| this.result(ray, info))
+        Surface::find_intersect(self.iter(), ray).map(|(this, info)| this.result(ray, info))
     }
 }
 

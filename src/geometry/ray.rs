@@ -79,7 +79,7 @@ where
                     Event::Refract(factor) => {
                         let new = self.refract(&result.position, &result.normal, factor);
                         photon + new.trace_inner(scene, rng, level + 1)
-                    }
+                    },
                 }
             },
             None => 0,
@@ -93,11 +93,7 @@ where
         let y = r * a.cos();
 
         let v = V3::new(x, y, z);
-        let direction = if &v * normal >= C::zero() {
-            v
-        } else {
-            -&v
-        };
+        let direction = if &v * normal >= C::zero() { v } else { -&v };
 
         Ray {
             position: position + &(&direction * C::epsilon()),

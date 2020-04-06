@@ -95,9 +95,15 @@ impl Sample {
             }
         };
         for pixel in &self.data {
-            b.push(to_byte(pixel.project(0) * scale / (self.sample_count as Density)));
-            b.push(to_byte(pixel.project(1) * scale / (self.sample_count as Density)));
-            b.push(to_byte(pixel.project(2) * scale / (self.sample_count as Density)));
+            b.push(to_byte(
+                pixel.project(0) * scale / (self.sample_count as Density),
+            ));
+            b.push(to_byte(
+                pixel.project(1) * scale / (self.sample_count as Density),
+            ));
+            b.push(to_byte(
+                pixel.project(2) * scale / (self.sample_count as Density),
+            ));
         }
         b
     }

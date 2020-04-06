@@ -27,6 +27,7 @@ impl Rgb {
 
     #[inline(always)]
     pub fn monochromatic(frequency: usize) -> Self {
+        #[rustfmt::skip]
         let table = [
             (392.16, Rgb::new( 2.7420e-03, -6.6577e-04,  1.8052e-02)),
             (396.04, Rgb::new( 5.4765e-03, -1.2443e-03,  3.6357e-02)),

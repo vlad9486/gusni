@@ -1,8 +1,7 @@
 use super::ray::Ray;
 use super::algebra::V3;
-use super::color::Density;
-use super::material::Material;
 use super::scene::{Scene, Intersect};
+use crate::light::{Density, Material};
 
 use std::cmp::Ordering;
 use serde::{Serialize, Deserialize};

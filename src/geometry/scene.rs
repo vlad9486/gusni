@@ -1,7 +1,6 @@
 use super::ray::Ray;
 use super::algebra::V3;
-use super::color::Density;
-use super::material::Material;
+use crate::light::{Density, Material};
 
 use num::Float;
 use generic_array::ArrayLength;

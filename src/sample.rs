@@ -1,7 +1,5 @@
-use super::color::{Rgb, Density};
-use super::algebra::V3;
-use super::scene::Scene;
-use super::ray::Ray;
+use super::light::{Rgb, Density};
+use super::geometry::{V3, Scene, Ray};
 
 use serde::{Serialize, Deserialize};
 use num::Float;

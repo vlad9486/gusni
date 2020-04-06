@@ -1,6 +1,6 @@
 use super::algebra::V3;
 use super::scene::Scene;
-use super::color::Density;
+use crate::light::Density;
 
 use serde::{Serialize, Deserialize};
 use num::Float;
@@ -52,7 +52,7 @@ where
         N: ArrayLength<C> + ArrayLength<Density>,
         R: Rng,
     {
-        use super::material::Event;
+        use crate::light::Event;
 
         let max_level = 7;
         if level > max_level {

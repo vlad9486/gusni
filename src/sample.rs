@@ -59,6 +59,10 @@ impl Sample {
         }
     }
 
+    pub fn size(&self) -> &Size {
+        &self.size
+    }
+
     pub fn sample<S, N, C, R>(&mut self, rng: &mut R, eye: &Eye<C>, scene: &S)
     where
         S: Scene<N, C>,

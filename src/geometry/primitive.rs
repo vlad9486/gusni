@@ -31,7 +31,7 @@ where
     }
 }
 
-impl<S, N, C> Scene<N, C> for [S]
+impl<S, N, C> Scene<N, C> for Vec<S>
 where
     N: ArrayLength<C> + ArrayLength<Density>,
     C: Default + Float,

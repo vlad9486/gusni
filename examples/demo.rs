@@ -8,13 +8,15 @@ use std::path::Path;
 use std::{
     fs::File,
     io::{Read, Write},
+    time::SystemTime,
 };
 
-use gusni::{Sample, Eye, Size, V3, Sphere, Beam, Material};
+use gusni::{Sample, Eye, Size, V3, Sphere, Beam, Material, Density};
 
 use serde::{Serialize, Deserialize};
+use num::Float;
 use bincode::{serialize, deserialize};
-use generic_array::typenum::U12;
+use generic_array::{ArrayLength, typenum::U12};
 
 fn main() {
     let scene = {
@@ -89,15 +91,21 @@ fn main() {
 
     let mut rng = rand::thread_rng();
     let mut sample = Sample::new(size);
+    let start = SystemTime::now();
     for _ in 0..1 {
-        sample.sample(&mut rng, &eye, &scene);
+        sample.trace(&mut rng, &eye, &scene);
     }
+    let end = SystemTime::now();
+    println!("elapsed: {:?}", end.duration_since(start).unwrap());
     store_tga(&sample, "demo.tga");
 }
 
-pub fn load<P>(path: P) -> Option<Sample>
+pub fn load<P, N, C>(path: P) -> Option<Sample<N, C>>
 where
     P: AsRef<Path>,
+    N: ArrayLength<u32> + ArrayLength<C> + ArrayLength<Density>,
+    C: Default + Float,
+    for<'de> Sample<N, C>: Deserialize<'de>,
 {
     match File::open(path) {
         Ok(mut file) => {
@@ -109,18 +117,23 @@ where
     }
 }
 
-pub fn store<P>(sample: &Sample, path: P)
+pub fn store<P, N, C>(sample: &Sample<N, C>, path: P)
 where
     P: AsRef<Path>,
+    N: ArrayLength<u32> + ArrayLength<C> + ArrayLength<Density>,
+    C: Default + Float,
+    Sample<N, C>: Serialize,
 {
     let image_encoded: Vec<u8> = serialize(sample).unwrap();
     let mut file = File::create(path).unwrap();
     file.write(image_encoded.as_slice()).unwrap();
 }
 
-fn store_tga<P>(sample: &Sample, path: P)
+fn store_tga<P, N, C>(sample: &Sample<N, C>, path: P)
 where
     P: AsRef<Path>,
+    N: ArrayLength<u32> + ArrayLength<C> + ArrayLength<Density>,
+    C: Default + Float,
 {
     #[derive(Serialize, Deserialize)]
     pub struct TgaHeader {

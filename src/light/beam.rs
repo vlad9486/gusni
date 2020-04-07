@@ -45,10 +45,7 @@ where
 {
     // memorize?
     fn basis(index: usize) -> Self {
-        let s = Beam::generate(|frequency| {
-            let frequency = frequency * Rgb::SIZE / N::to_usize();
-            Rgb::monochromatic(frequency).project(index)
-        });
+        let s = Beam::generate(|frequency| Rgb::monochromatic::<N>(frequency).project(index));
         let l = (&s * &s).sqrt();
         &s / l
     }

@@ -1,10 +1,11 @@
 use super::light::{Rgb, Density};
 use super::geometry::{V3, Scene, Ray};
 
+use std::marker::PhantomData;
 use serde::{Serialize, Deserialize};
 use num::Float;
 use rand::Rng;
-use generic_array::ArrayLength;
+use generic_array::{GenericArray, ArrayLength};
 
 #[derive(Serialize, Deserialize)]
 pub struct Size {
@@ -41,21 +42,31 @@ where
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Sample {
+pub struct Sample<N, C>
+where
+    N: ArrayLength<u32> + ArrayLength<C> + ArrayLength<Density>,
+    C: Default + Float,
+{
     size: Size,
     sample_count: u64,
-    data: Vec<Rgb>,
+    data: Vec<GenericArray<u32, N>>,
+    phantom_data: PhantomData<C>,
 }
 
-impl Sample {
+impl<N, C> Sample<N, C>
+where
+    N: ArrayLength<u32> + ArrayLength<C> + ArrayLength<Density>,
+    C: Default + Float,
+{
     pub fn new(size: Size) -> Self {
         let capacity = (size.horizontal_count * size.vertical_count) as usize;
         let mut data = Vec::with_capacity(capacity);
-        data.resize(capacity, Rgb::default());
+        data.resize(capacity, GenericArray::default());
         Sample {
             size: size,
             sample_count: 0,
             data: data,
+            phantom_data: PhantomData,
         }
     }
 
@@ -63,11 +74,9 @@ impl Sample {
         &self.size
     }
 
-    pub fn sample<S, N, C, R>(&mut self, rng: &mut R, eye: &Eye<C>, scene: &S)
+    pub fn trace<S, R>(&mut self, rng: &mut R, eye: &Eye<C>, scene: &S)
     where
         S: Scene<N, C>,
-        N: ArrayLength<C> + ArrayLength<Density>,
-        C: Default + Float,
         R: Rng,
     {
         for i in 0..self.size.vertical_count {
@@ -78,10 +87,9 @@ impl Sample {
                     let x = C::from(j).unwrap() + C::from(dx).unwrap();
                     let y = C::from(i).unwrap() + C::from(dy).unwrap();
                     let ray = eye.ray(x, y, &self.size, frequency);
-                    let photon_number = ray.trace(scene, rng) as Density;
+                    let photon_number = ray.trace(scene, rng) as u32;
                     let index = (i * self.size.horizontal_count + j) as usize;
-                    let frequency = frequency * Rgb::SIZE / N::to_usize();
-                    self.data[index] += Rgb::monochromatic(frequency) * photon_number;
+                    self.data[index][frequency] += photon_number;
                 }
             }
         }
@@ -101,7 +109,14 @@ impl Sample {
                 (a * 255.0) as u8
             }
         };
-        for pixel in &self.data {
+        for photons in &self.data {
+            let pixel =
+                photons
+                    .iter()
+                    .enumerate()
+                    .fold(Rgb::default(), |a, (frequency, &density)| {
+                        a + (Rgb::monochromatic::<N>(frequency) * (density as Density))
+                    });
             b.push(to_byte(
                 pixel.project(0) * scale / (self.sample_count as Density),
             ));

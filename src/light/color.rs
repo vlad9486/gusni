@@ -1,5 +1,6 @@
-use std::ops::{AddAssign, Mul};
+use std::ops::{Add, Mul};
 use serde::{Serialize, Deserialize};
+use generic_array::typenum::Unsigned;
 
 pub type Density = f64;
 
@@ -26,7 +27,10 @@ impl Rgb {
     }
 
     #[inline(always)]
-    pub fn monochromatic(frequency: usize) -> Self {
+    pub fn monochromatic<N>(frequency: usize) -> Self
+    where
+        N: Unsigned,
+    {
         #[rustfmt::skip]
         let table = [
             (392.16, Rgb::new( 2.7420e-03, -6.6577e-04,  1.8052e-02)),
@@ -78,6 +82,7 @@ impl Rgb {
             (714.29, Rgb::new( 9.9268e-03, -9.0810e-05,  7.5899e-06)),
             (727.27, Rgb::new( 3.8539e-03, -3.2577e-05,  4.5185e-06)),
         ];
+        let frequency = frequency * Rgb::SIZE / N::to_usize();
         table[frequency].clone().1
     }
 }
@@ -90,10 +95,10 @@ impl Mul<Density> for Rgb {
     }
 }
 
-impl AddAssign for Rgb {
-    fn add_assign(&mut self, rhs: Self) {
-        self.r += rhs.r;
-        self.g += rhs.g;
-        self.b += rhs.b;
+impl Add for Rgb {
+    type Output = Rgb;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Rgb::new(self.r + rhs.r, self.g + rhs.g, self.b + rhs.b)
     }
 }

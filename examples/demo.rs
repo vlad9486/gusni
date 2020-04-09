@@ -80,28 +80,34 @@ fn main() {
         distance: 1.2,
     });
 
-    let threads = (0..8).map(|i| {
-        let eye = eye.clone();
-        let scene = scene.clone();
-        thread::spawn(move || {
-            let horizontal_count = 1920;
-            let vertical_count = 1080;
-            let mut rng = rand::thread_rng();
-            let mut sample = Sample::new(horizontal_count, vertical_count);
-            let start = SystemTime::now();
-            let sample_count = 4;
-            for _ in 0..sample_count {
-                sample.trace(&mut rng, &eye, scene.as_ref());
-            }
-            let traced = SystemTime::now();
-            let duration = traced.duration_since(start).unwrap();
-            println!("thread: {:?}, tracing time: {:?}, {:?}", i, duration, sample_count);
-            sample
+    let threads = (0..8)
+        .map(|i| {
+            let eye = eye.clone();
+            let scene = scene.clone();
+            thread::spawn(move || {
+                let horizontal_count = 1920;
+                let vertical_count = 1080;
+                let mut rng = rand::thread_rng();
+                let mut sample = Sample::new(horizontal_count, vertical_count);
+                let start = SystemTime::now();
+                let sample_count = 4;
+                for _ in 0..sample_count {
+                    sample.trace(&mut rng, &eye, scene.as_ref());
+                }
+                let traced = SystemTime::now();
+                let duration = traced.duration_since(start).unwrap();
+                println!(
+                    "thread: {:?}, tracing time: {:?}, {:?}",
+                    i, duration, sample_count
+                );
+                sample
+            })
         })
-    }).collect::<Vec<_>>();
+        .collect::<Vec<_>>();
 
     let start = SystemTime::now();
-    let sample = threads.into_iter()
+    let sample = threads
+        .into_iter()
         .fold(None, |a, handle| {
             let sample = handle.join().unwrap();
             match a {

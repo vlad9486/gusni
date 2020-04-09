@@ -68,8 +68,7 @@ where
     N: ArrayLength<C>,
 {
     pub fn to_rgb(&self) -> Rgb {
-        self
-            .powers
+        self.powers
             .iter()
             .enumerate()
             .fold(Rgb::default(), |a, (frequency, density)| {
@@ -166,7 +165,9 @@ mod test {
         println!("green: {:?}", b.to_rgb());
         let b = Beam::<Density, U12>::blue();
         println!("blue: {:?}", b.to_rgb());
-        let b = Beam::<Density, U12>::red() + Beam::<Density, U12>::green() + Beam::<Density, U12>::blue();
+        let b = Beam::<Density, U12>::red()
+            + Beam::<Density, U12>::green()
+            + Beam::<Density, U12>::blue();
         println!("white: {:?}", b.to_rgb());
     }
 

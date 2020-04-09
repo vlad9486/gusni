@@ -116,15 +116,9 @@ where
         };
         for beam in &self.data {
             let pixel = beam.to_rgb();
-            b.push(to_byte(
-                pixel.project(0) / (self.sample_count as Density),
-            ));
-            b.push(to_byte(
-                pixel.project(1) / (self.sample_count as Density),
-            ));
-            b.push(to_byte(
-                pixel.project(2) / (self.sample_count as Density),
-            ));
+            b.push(to_byte(pixel.project(0) / (self.sample_count as Density)));
+            b.push(to_byte(pixel.project(1) / (self.sample_count as Density)));
+            b.push(to_byte(pixel.project(2) / (self.sample_count as Density)));
         }
         b
     }

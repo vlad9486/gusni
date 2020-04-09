@@ -65,7 +65,7 @@ where
                 let fate = result.material.fate(self.frequency, dice);
                 let photon = if fate.emission { 1 } else { 0 };
                 match fate.event {
-                    Event::Decay => 0,
+                    Event::Decay => photon,
                     Event::Diffuse => {
                         let a = C::from(rng.gen_range(0.0, 1.0)).unwrap();
                         let z = C::from(rng.gen_range(0.0, 1.0)).unwrap();

@@ -59,7 +59,7 @@ where
 
     pub fn fate(&self, frequency: usize, dice: [Density; 2]) -> Fate<C> {
         let [emission, event] = dice;
-        let emission = self.emission.project(frequency) < emission;
+        let emission = emission < self.emission.project(frequency);
         let diffuse = self.diffuse.project(frequency);
         let reflection = self.reflection.project(frequency);
         let refraction = self.refraction.project(frequency);

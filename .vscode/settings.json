@@ -1,6 +1,7 @@
 {
     "cSpell.words": [
         "bincode",
+        "consts",
         "gusni",
         "rustfmt",
         "typenum"

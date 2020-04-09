@@ -92,7 +92,7 @@ where
                     let x = C::from(j).unwrap() + C::from(dx).unwrap();
                     let y = C::from(i).unwrap() + C::from(dy).unwrap();
                     let ray = eye.ray(x, y, self.width, self.height, frequency);
-                    let photon_number = ray.trace(scene, rng) as u32;
+                    let photon_number = ray.trace(scene, rng);
                     let index = (i * self.width + j) as usize;
                     self.data[index].add_photons(frequency, photon_number);
                 }
@@ -102,7 +102,7 @@ where
         self.sample_count += 1;
     }
 
-    pub fn bitmap(&self) -> Vec<u8> {
+    pub fn bitmap(&self, scale: Density) -> Vec<u8> {
         let capacity = (3 * self.width * self.height) as usize;
         let mut b = Vec::with_capacity(capacity);
         let to_byte = |a: Density| -> u8 {
@@ -116,9 +116,9 @@ where
         };
         for beam in &self.data {
             let pixel = beam.to_rgb();
-            b.push(to_byte(pixel.project(0) / (self.sample_count as Density)));
-            b.push(to_byte(pixel.project(1) / (self.sample_count as Density)));
-            b.push(to_byte(pixel.project(2) / (self.sample_count as Density)));
+            b.push(to_byte(pixel.project(0) * scale / (self.sample_count as Density)));
+            b.push(to_byte(pixel.project(1) * scale / (self.sample_count as Density)));
+            b.push(to_byte(pixel.project(2) * scale / (self.sample_count as Density)));
         }
         b
     }

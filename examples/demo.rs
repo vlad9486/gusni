@@ -195,5 +195,5 @@ where
     let mut file = File::create(path).unwrap();
     file.write(serialize(&image_header).unwrap().as_slice())
         .unwrap();
-    file.write(sample.bitmap().as_slice()).unwrap();
+    file.write(sample.bitmap(12.0).as_slice()).unwrap();
 }

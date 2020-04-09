@@ -37,7 +37,7 @@ where
         &self.direction
     }
 
-    pub fn trace<S, N, R>(&self, scene: &S, rng: &mut R) -> usize
+    pub fn trace<S, N, R>(&self, scene: &S, rng: &mut R) -> u32
     where
         S: Scene<N, C>,
         N: ArrayLength<C> + ArrayLength<Density>,
@@ -46,7 +46,7 @@ where
         self.trace_inner(scene, rng, 0)
     }
 
-    fn trace_inner<S, N, R>(&self, scene: &S, rng: &mut R, level: usize) -> usize
+    fn trace_inner<S, N, R>(&self, scene: &S, rng: &mut R, level: usize) -> u32
     where
         S: Scene<N, C>,
         N: ArrayLength<C> + ArrayLength<Density>,

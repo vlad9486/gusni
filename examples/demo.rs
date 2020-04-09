@@ -24,14 +24,14 @@ fn main() {
     let scene = {
         let gray = Beam::<_, U12>::red() + Beam::green() + Beam::blue();
 
-        let dr_red = Material::<U12, f32>::new(
+        let dr_red = Material::<U12, f64>::new(
             Beam::default(),
             &Beam::red() * 0.5,
             &gray * 0.5,
             Beam::default(),
             Beam::default(),
         );
-        let d_blue = Material::<U12, f32>::new(
+        let d_blue = Material::<U12, f64>::new(
             Beam::default(),
             Beam::blue(),
             Beam::default(),
@@ -119,7 +119,7 @@ fn main() {
 
     store_tga(&sample, "target/demo.tga");
     let written = SystemTime::now();
-    println!("writing time: {:?}", written.duration_since(start).unwrap());
+    println!("total time: {:?}", written.duration_since(start).unwrap());
 }
 
 pub fn load<P, N, C>(path: P) -> Option<Sample<N, C>>
@@ -195,5 +195,5 @@ where
     let mut file = File::create(path).unwrap();
     file.write(serialize(&image_header).unwrap().as_slice())
         .unwrap();
-    file.write(sample.bitmap(12.0).as_slice()).unwrap();
+    file.write(sample.bitmap(12.0, true).as_slice()).unwrap();
 }

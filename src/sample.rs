@@ -102,7 +102,7 @@ where
         self.sample_count += 1;
     }
 
-    pub fn bitmap(&self, scale: Density) -> Vec<u8> {
+    pub fn bitmap(&self, scale: Density, reverse: bool) -> Vec<u8> {
         let capacity = (3 * self.width * self.height) as usize;
         let mut b = Vec::with_capacity(capacity);
         let to_byte = |a: Density| -> u8 {
@@ -116,9 +116,14 @@ where
         };
         for beam in &self.data {
             let pixel = beam.to_rgb();
-            b.push(to_byte(pixel.project(0) * scale / (self.sample_count as Density)));
-            b.push(to_byte(pixel.project(1) * scale / (self.sample_count as Density)));
-            b.push(to_byte(pixel.project(2) * scale / (self.sample_count as Density)));
+            let (_0, _1, _2) = if reverse {
+                (pixel.project(2), pixel.project(1), pixel.project(0))
+            } else {
+                (pixel.project(0), pixel.project(1), pixel.project(2))
+            };
+            b.push(to_byte(_0 * scale / (self.sample_count as Density)));
+            b.push(to_byte(_1 * scale / (self.sample_count as Density)));
+            b.push(to_byte(_2 * scale / (self.sample_count as Density)));
         }
         b
     }

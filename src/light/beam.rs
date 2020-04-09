@@ -46,7 +46,7 @@ where
     fn basis(index: usize) -> Self {
         let s = Beam::generate(|frequency| Rgb::monochromatic::<N>(frequency).project(index));
         let l = &s * &s;
-        &s / (l * 2.0)
+        &s / l
     }
 
     pub fn red() -> Self {

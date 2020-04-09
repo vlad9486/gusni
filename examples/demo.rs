@@ -9,9 +9,11 @@ use std::{
     fs::File,
     io::{Read, Write},
     time::SystemTime,
+    thread,
+    sync::Arc,
 };
 
-use gusni::{Sample, Eye, Size, V3, Sphere, Beam, Material, Density};
+use gusni::{Sample, Eye, V3, Sphere, Beam, Material, Density};
 
 use serde::{Serialize, Deserialize};
 use num::Float;
@@ -22,21 +24,21 @@ fn main() {
     let scene = {
         let gray = Beam::<_, U12>::red() + Beam::green() + Beam::blue();
 
-        let rg = Material::<U12, f32>::new(
+        let dr_red = Material::<U12, f32>::new(
             Beam::default(),
             &Beam::red() * 0.5,
             &gray * 0.5,
             Beam::default(),
             Beam::default(),
         );
-        let d = Material::<U12, f32>::new(
+        let d_blue = Material::<U12, f32>::new(
             Beam::default(),
             Beam::blue(),
             Beam::default(),
             Beam::default(),
             Beam::default(),
         );
-        let e_w = Material::new(
+        let e_gray = Material::new(
             gray.clone(),
             Beam::default(),
             Beam::default(),
@@ -52,27 +54,22 @@ fn main() {
         );
 
         let r = 100000.0;
-        let zp = Sphere::new(V3::new(0.0, 0.0, -r + 20.0), r, d.clone());
+        let zp = Sphere::new(V3::new(0.0, 0.0, -r + 20.0), r, d_blue.clone());
         let zn = Sphere::new(V3::new(0.0, 0.0, -r - 10.0), r, d_gray.clone());
         let yp = Sphere::new(V3::new(0.0, r + 10.0, 0.0), r, d_gray.clone());
         let yn = Sphere::new(V3::new(0.0, -r - 10.0, 0.0), r, d_gray.clone());
         let xp = Sphere::new(V3::new(r + 10.0, 0.0, 0.0), r, d_gray.clone());
         let xn = Sphere::new(V3::new(-r - 10.0, 0.0, 0.0), r, d_gray.clone());
 
-        let a = Sphere::new(V3::new(-0.9, 0.0, 0.0), 1.0, rg.clone());
-        let b = Sphere::new(V3::new(1.5, 1.0, 0.5), 1.5, rg.clone());
+        let a = Sphere::new(V3::new(-0.9, 0.0, 0.0), 1.0, dr_red.clone());
+        let b = Sphere::new(V3::new(1.5, 1.0, 0.5), 1.5, dr_red.clone());
 
-        let source = Sphere::new(V3::new(0.0, 1000.0 + 9.98, -4.0), 1000.0, e_w.clone());
+        let source = Sphere::new(V3::new(0.0, 1000.0 + 9.8, -4.0), 1000.0, e_gray.clone());
 
-        vec![zp, zn, yp, yn, xp, xn, a, b, source]
+        Arc::new(vec![zp, zn, yp, yn, xp, xn, a, b, source])
     };
 
-    let size = Size {
-        horizontal_count: 1920,
-        vertical_count: 1080,
-    };
-
-    let eye = Eye {
+    let eye = Arc::new(Eye {
         position: V3::new(0.0, 0.0, -9.0),
         forward: V3::new(0.0, 0.0, 1.0),
         right: V3::new(1.0, 0.0, 0.0),
@@ -81,19 +78,42 @@ fn main() {
         width: 1.6,
         height: 0.9,
         distance: 1.2,
-    };
+    });
 
-    let mut rng = rand::thread_rng();
-    let mut sample = Sample::new(size);
+    let threads = (0..8).map(|i| {
+        let eye = eye.clone();
+        let scene = scene.clone();
+        thread::spawn(move || {
+            let horizontal_count = 1920;
+            let vertical_count = 1080;
+            let mut rng = rand::thread_rng();
+            let mut sample = Sample::new(horizontal_count, vertical_count);
+            let start = SystemTime::now();
+            let sample_count = 4;
+            for _ in 0..sample_count {
+                sample.trace(&mut rng, &eye, scene.as_ref());
+            }
+            let traced = SystemTime::now();
+            let duration = traced.duration_since(start).unwrap();
+            println!("thread: {:?}, tracing time: {:?}, {:?}", i, duration, sample_count);
+            sample
+        })
+    }).collect::<Vec<_>>();
+
     let start = SystemTime::now();
-    for _ in 0..16 {
-        sample.trace(&mut rng, &eye, &scene);
-    }
-    let traced = SystemTime::now();
+    let sample = threads.into_iter()
+        .fold(None, |a, handle| {
+            let sample = handle.join().unwrap();
+            match a {
+                None => Some(sample),
+                Some(s) => Some(s + sample),
+            }
+        })
+        .unwrap();
+
     store_tga(&sample, "target/demo.tga");
     let written = SystemTime::now();
-    println!("tracing time: {:?}", traced.duration_since(start).unwrap());
-    println!("writing time: {:?}", written.duration_since(traced).unwrap());
+    println!("writing time: {:?}", written.duration_since(start).unwrap());
 }
 
 pub fn load<P, N, C>(path: P) -> Option<Sample<N, C>>
@@ -165,8 +185,7 @@ where
         }
     }
 
-    let size = sample.size();
-    let image_header = TgaHeader::rgb(size.horizontal_count, size.vertical_count);
+    let image_header = TgaHeader::rgb(sample.width(), sample.height());
     let mut file = File::create(path).unwrap();
     file.write(serialize(&image_header).unwrap().as_slice())
         .unwrap();

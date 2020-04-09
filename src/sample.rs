@@ -3,18 +3,12 @@ use super::geometry::{V3, Scene, Ray};
 
 use std::{
     marker::PhantomData,
-    ops::AddAssign,
+    ops::{Add, AddAssign},
 };
 use serde::{Serialize, Deserialize};
 use num::Float;
 use rand::Rng;
 use generic_array::ArrayLength;
-
-#[derive(Serialize, Deserialize, Eq, PartialEq, Debug)]
-pub struct Size {
-    pub horizontal_count: u32,
-    pub vertical_count: u32,
-}
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Eye<C>
@@ -35,9 +29,9 @@ impl<C> Eye<C>
 where
     C: Default + Float,
 {
-    pub fn ray(&self, x: C, y: C, size: &Size, frequency: usize) -> Ray<C> {
-        let x = self.width * (x / C::from(size.horizontal_count).unwrap() - C::from(0.5).unwrap());
-        let y = self.height * (y / C::from(size.vertical_count).unwrap() - C::from(0.5).unwrap());
+    pub fn ray(&self, x: C, y: C, width: u32, height: u32, frequency: usize) -> Ray<C> {
+        let x = self.width * (x / C::from(width).unwrap() - C::from(0.5).unwrap());
+        let y = self.height * (y / C::from(height).unwrap() - C::from(0.5).unwrap());
         let tangent = &(&self.right * x) + &(&self.up * y);
         let direction = (&(&self.forward * self.distance) + &tangent).normalize();
         Ray::new(self.position.clone(), direction, frequency)
@@ -51,7 +45,8 @@ where
     N: ArrayLength<u32> + ArrayLength<C> + ArrayLength<Density>,
     C: Default + Float,
 {
-    size: Size,
+    width: u32,
+    height: u32,
     sample_count: u32,
     data: Vec<Beam<u32, N>>,
     phantom_data: PhantomData<C>,
@@ -63,20 +58,25 @@ where
     N: ArrayLength<u32> + ArrayLength<C> + ArrayLength<Density>,
     C: Default + Float,
 {
-    pub fn new(size: Size) -> Self {
-        let capacity = (size.horizontal_count * size.vertical_count) as usize;
+    pub fn new(width: u32, height: u32) -> Self {
+        let capacity = (width * height) as usize;
         let mut data = Vec::with_capacity(capacity);
         data.resize(capacity, Beam::default());
         Sample {
-            size: size,
+            width: width,
+            height: height,
             sample_count: 0,
             data: data,
             phantom_data: PhantomData,
         }
     }
 
-    pub fn size(&self) -> &Size {
-        &self.size
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    pub fn height(&self) -> u32 {
+        self.height
     }
 
     pub fn trace<S, R>(&mut self, rng: &mut R, eye: &Eye<C>, scene: &S)
@@ -84,16 +84,16 @@ where
         S: Scene<N, C>,
         R: Rng,
     {
-        for i in 0..self.size.vertical_count {
-            for j in 0..self.size.horizontal_count {
+        for i in 0..self.height {
+            for j in 0..self.width {
                 for frequency in 0..N::to_usize() {
                     let dx = rng.gen_range(-0.5, 0.5);
                     let dy = rng.gen_range(-0.5, 0.5);
                     let x = C::from(j).unwrap() + C::from(dx).unwrap();
                     let y = C::from(i).unwrap() + C::from(dy).unwrap();
-                    let ray = eye.ray(x, y, &self.size, frequency);
+                    let ray = eye.ray(x, y, self.width, self.height, frequency);
                     let photon_number = ray.trace(scene, rng) as u32;
-                    let index = (i * self.size.horizontal_count + j) as usize;
+                    let index = (i * self.width + j) as usize;
                     self.data[index].add_photons(frequency, photon_number);
                 }
             }
@@ -103,7 +103,7 @@ where
     }
 
     pub fn bitmap(&self) -> Vec<u8> {
-        let capacity = (3 * self.size.horizontal_count * self.size.vertical_count) as usize;
+        let capacity = (3 * self.width * self.height) as usize;
         let mut b = Vec::with_capacity(capacity);
         let to_byte = |a: Density| -> u8 {
             if a >= 1.0 {
@@ -137,14 +137,27 @@ where
     C: Default + Float,
 {
     fn add_assign(&mut self, rhs: Self) {
-        assert_eq!(self.size, rhs.size);
+        assert_eq!(self.width, rhs.width);
+        assert_eq!(self.height, rhs.height);
 
         self.sample_count += rhs.sample_count;
-        for i in 0..self.size.vertical_count {
-            for j in 0..self.size.horizontal_count {
-                let index = (i * self.size.horizontal_count + j) as usize;
-                self.data[index] += rhs.data[index].clone();
-            }
+        for i in 0..((self.height * self.width) as usize) {
+            self.data[i] += rhs.data[i].clone();
         }
+    }
+}
+
+impl<N, C> Add for Sample<N, C>
+where
+    Beam<u32, N>: Default + Clone,
+    N: ArrayLength<u32> + ArrayLength<C> + ArrayLength<Density>,
+    C: Default + Float,
+{
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        let mut s = self;
+        s += rhs;
+        s
     }
 }

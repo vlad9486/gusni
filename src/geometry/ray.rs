@@ -53,6 +53,7 @@ where
         R: Rng,
     {
         use crate::light::Event;
+        use std::f32::consts::PI;
 
         let max_level = 7;
         if level > max_level {
@@ -67,8 +68,8 @@ where
                 match fate.event {
                     Event::Decay => photon,
                     Event::Diffuse => {
-                        let a = C::from(rng.gen_range(0.0, 1.0)).unwrap();
-                        let z = C::from(rng.gen_range(0.0, 1.0)).unwrap();
+                        let a = C::from(rng.gen_range(0.0, 2.0 * PI)).unwrap();
+                        let z = C::from(rng.gen_range(-1.0, 1.0)).unwrap();
                         let new = self.diffuse(&result.position, &result.normal, [a, z]);
                         photon + new.trace_inner(scene, rng, level + 1)
                     },

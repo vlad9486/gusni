@@ -6,5 +6,5 @@ mod light;
 mod sample;
 
 pub use self::sample::{Sample, Eye};
-pub use self::geometry::{V3, Ray, Scene, Intersect, Surface, Sphere};
-pub use self::light::{Density, Beam, Material, Fate, Event};
+pub use self::geometry::{V3, Ray, Scene, Intersect, Surface, Sphere, Material, Event};
+pub use self::light::{Density, Beam, BeamMaterial};

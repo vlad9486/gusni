@@ -13,39 +13,39 @@ use std::{
     sync::Arc,
 };
 
-use gusni::{Sample, Eye, V3, Sphere, Beam, Material, Density};
+use gusni::{Sample, Eye, V3, Sphere, Beam, BeamMaterial, Density};
 
 use serde::{Serialize, Deserialize};
 use num::Float;
 use bincode::{serialize, deserialize};
-use generic_array::{ArrayLength, typenum::U12};
+use generic_array::{ArrayLength, typenum::U8};
 
 fn main() {
     let scene = {
-        let gray = Beam::<_, U12>::red() + Beam::green() + Beam::blue();
+        let gray = Beam::red() + Beam::green() + Beam::blue();
 
-        let dr_red = Material::<U12, f64>::new(
+        let dr_red = BeamMaterial::<U8, f64>::new(
             Beam::default(),
             &Beam::red() * 0.5,
             &gray * 0.5,
             Beam::default(),
             Beam::default(),
         );
-        let d_blue = Material::<U12, f64>::new(
+        let d_blue = BeamMaterial::new(
             Beam::default(),
             Beam::blue(),
             Beam::default(),
             Beam::default(),
             Beam::default(),
         );
-        let e_gray = Material::new(
+        let e_gray = BeamMaterial::new(
             gray.clone(),
             Beam::default(),
             Beam::default(),
             Beam::default(),
             Beam::default(),
         );
-        let d_gray = Material::new(
+        let d_gray = BeamMaterial::new(
             Beam::default(),
             gray.clone(),
             Beam::default(),
@@ -106,7 +106,7 @@ fn main() {
         .collect::<Vec<_>>();
 
     let start = SystemTime::now();
-    let sample = threads
+    let sample: Sample<U8, f64> = threads
         .into_iter()
         .fold(None, |a, handle| {
             let sample = handle.join().unwrap();
@@ -195,5 +195,5 @@ where
     let mut file = File::create(path).unwrap();
     file.write(serialize(&image_header).unwrap().as_slice())
         .unwrap();
-    file.write(sample.bitmap(12.0, true).as_slice()).unwrap();
+    file.write(sample.bitmap(8.0, true).as_slice()).unwrap();
 }

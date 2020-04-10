@@ -1,30 +1,13 @@
 use super::beam::Beam;
 use super::color::Density;
+use crate::geometry::{Event, Material};
 
 use serde::{Serialize, Deserialize};
 use num::Float;
 use generic_array::ArrayLength;
 
-pub struct Fate<C>
-where
-    C: Float,
-{
-    pub emission: bool,
-    pub event: Event<C>,
-}
-
-pub enum Event<C>
-where
-    C: Float,
-{
-    Decay,
-    Diffuse,
-    Reflect,
-    Refract(C),
-}
-
 #[derive(Default, Clone, Serialize, Deserialize)]
-pub struct Material<N, C>
+pub struct BeamMaterial<N, C>
 where
     N: ArrayLength<C> + ArrayLength<Density>,
     C: Default + Float,
@@ -36,7 +19,7 @@ where
     refraction_factor: Beam<C, N>,
 }
 
-impl<N, C> Material<N, C>
+impl<N, C> BeamMaterial<N, C>
 where
     N: ArrayLength<C> + ArrayLength<Density>,
     C: Default + Float,
@@ -48,7 +31,7 @@ where
         refraction: Beam<Density, N>,
         refraction_factor: Beam<C, N>,
     ) -> Self {
-        Material {
+        BeamMaterial {
             emission: emission,
             diffuse: diffuse,
             reflection: reflection,
@@ -56,26 +39,38 @@ where
             refraction_factor: refraction_factor,
         }
     }
+}
 
-    pub fn fate(&self, frequency: usize, dice: [Density; 2]) -> Fate<C> {
-        let [emission, event] = dice;
-        let emission = emission < self.emission.project(frequency);
-        let diffuse = self.diffuse.project(frequency);
-        let reflection = self.reflection.project(frequency);
-        let refraction = self.refraction.project(frequency);
-        let event = if event < diffuse {
-            Event::Diffuse
-        } else if event < diffuse + reflection {
-            Event::Reflect
-        } else if event < diffuse + reflection + refraction {
-            Event::Refract(self.refraction_factor.project(frequency))
+impl<N, C> Material for BeamMaterial<N, C>
+where
+    N: ArrayLength<u32> + ArrayLength<C> + ArrayLength<Density>,
+    C: Default + Float,
+{
+    type Coordinate = C;
+    type Probability = Density;
+    type FrequencySize = N;
+
+    fn fate(
+        &self,
+        frequency: usize,
+        emission: Self::Probability,
+        event: Self::Probability,
+    ) -> Event<Self::Coordinate> {
+        if emission < self.emission.project(frequency) {
+            Event::Emission
         } else {
-            Event::Decay
-        };
-
-        Fate {
-            emission: emission,
-            event: event,
+            let diffuse = self.diffuse.project(frequency);
+            let reflection = self.reflection.project(frequency);
+            let refraction = self.refraction.project(frequency);
+            if event < diffuse {
+                Event::Diffuse
+            } else if event < diffuse + reflection {
+                Event::Reflect
+            } else if event < diffuse + reflection + refraction {
+                Event::Refract(self.refraction_factor.project(frequency))
+            } else {
+                Event::Decay
+            }
         }
     }
 }

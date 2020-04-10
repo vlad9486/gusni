@@ -7,7 +7,7 @@ use generic_array::{GenericArray, ArrayLength};
 #[derive(Default, Clone, Serialize, Deserialize, Debug)]
 pub struct Beam<C, N>
 where
-    C: Default + Clone,
+    C: Clone,
     N: ArrayLength<C>,
 {
     #[serde(bound(
@@ -19,7 +19,7 @@ where
 
 impl<C, N> Beam<C, N>
 where
-    C: Default + Clone,
+    C: Clone,
     N: ArrayLength<C>,
 {
     pub fn generate<F>(f: F) -> Self
@@ -64,7 +64,7 @@ where
 
 impl<C, N> Beam<C, N>
 where
-    C: Default + Clone + Into<Density>,
+    C: Clone + Into<Density>,
     N: ArrayLength<C>,
 {
     pub fn to_rgb(&self) -> Rgb {
@@ -105,7 +105,7 @@ where
 
 impl<C, N> Add<Beam<C, N>> for Beam<C, N>
 where
-    C: Default + Clone + Add<C, Output = C>,
+    C: Clone + Add<C, Output = C>,
     N: ArrayLength<C>,
 {
     type Output = Beam<C, N>;
@@ -117,7 +117,7 @@ where
 
 impl<C, N> AddAssign<Beam<C, N>> for Beam<C, N>
 where
-    C: Default + Clone + AddAssign<C>,
+    C: Clone + AddAssign<C>,
     N: ArrayLength<C>,
 {
     fn add_assign(&mut self, rhs: Beam<C, N>) {
@@ -129,7 +129,7 @@ where
 
 impl<'a, C, N> Mul<C> for &'a Beam<C, N>
 where
-    C: Default + Clone + Mul<C, Output = C>,
+    C: Clone + Mul<C, Output = C>,
     N: ArrayLength<C>,
 {
     type Output = Beam<C, N>;
@@ -141,7 +141,7 @@ where
 
 impl<'a, C, N> Div<C> for &'a Beam<C, N>
 where
-    C: Default + Clone + Div<C, Output = C>,
+    C: Clone + Div<C, Output = C>,
     N: ArrayLength<C>,
 {
     type Output = Beam<C, N>;

@@ -1,5 +1,5 @@
 use super::light::{Density, Beam};
-use super::geometry::{V3, Scene, Ray};
+use super::geometry::{V3, Scene, Ray, Material};
 
 use std::{
     marker::PhantomData,
@@ -13,7 +13,7 @@ use generic_array::ArrayLength;
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Eye<C>
 where
-    C: Default + Float,
+    C: Float,
 {
     pub position: V3<C>,
     pub forward: V3<C>,
@@ -27,7 +27,7 @@ where
 
 impl<C> Eye<C>
 where
-    C: Default + Float,
+    C: Float,
 {
     pub fn ray(&self, x: C, y: C, width: u32, height: u32, frequency: usize) -> Ray<C> {
         let x = self.width * (x / C::from(width).unwrap() - C::from(0.5).unwrap());
@@ -43,7 +43,7 @@ pub struct Sample<N, C>
 where
     Beam<u32, N>: Default + Clone,
     N: ArrayLength<u32> + ArrayLength<C> + ArrayLength<Density>,
-    C: Default + Float,
+    C: Float,
 {
     width: u32,
     height: u32,
@@ -56,7 +56,7 @@ impl<N, C> Sample<N, C>
 where
     Beam<u32, N>: Default + Clone,
     N: ArrayLength<u32> + ArrayLength<C> + ArrayLength<Density>,
-    C: Default + Float,
+    C: Float,
 {
     pub fn new(width: u32, height: u32) -> Self {
         let capacity = (width * height) as usize;
@@ -79,9 +79,11 @@ where
         self.height
     }
 
-    pub fn trace<S, R>(&mut self, rng: &mut R, eye: &Eye<C>, scene: &S)
+    pub fn trace<S, M, R>(&mut self, rng: &mut R, eye: &Eye<C>, scene: &S)
     where
-        S: Scene<N, C>,
+        S: Scene<Material = M>,
+        M: Material<Coordinate = C>,
+        M::FrequencySize: ArrayLength<C>,
         R: Rng,
     {
         for i in 0..self.height {
@@ -92,9 +94,11 @@ where
                     let x = C::from(j).unwrap() + C::from(dx).unwrap();
                     let y = C::from(i).unwrap() + C::from(dy).unwrap();
                     let ray = eye.ray(x, y, self.width, self.height, frequency);
-                    let photon_number = ray.trace(scene, rng);
+                    let photon = ray.trace(scene, rng);
                     let index = (i * self.width + j) as usize;
-                    self.data[index].add_photons(frequency, photon_number);
+                    if photon {
+                        self.data[index].add_photons(frequency, 1);
+                    }
                 }
             }
         }
@@ -133,7 +137,7 @@ impl<N, C> AddAssign for Sample<N, C>
 where
     Beam<u32, N>: Default + Clone,
     N: ArrayLength<u32> + ArrayLength<C> + ArrayLength<Density>,
-    C: Default + Float,
+    C: Float,
 {
     fn add_assign(&mut self, rhs: Self) {
         assert_eq!(self.width, rhs.width);
@@ -150,7 +154,7 @@ impl<N, C> Add for Sample<N, C>
 where
     Beam<u32, N>: Default + Clone,
     N: ArrayLength<u32> + ArrayLength<C> + ArrayLength<Density>,
-    C: Default + Float,
+    C: Float,
 {
     type Output = Self;
 

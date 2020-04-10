@@ -1,6 +1,5 @@
 use super::algebra::V3;
-use super::scene::Scene;
-use crate::light::Density;
+use super::scene::{Material, Scene, Event};
 
 use serde::{Serialize, Deserialize};
 use num::Float;
@@ -19,7 +18,7 @@ where
 
 impl<C> Ray<C>
 where
-    C: Default + Float,
+    C: Float,
 {
     pub fn new(position: V3<C>, direction: V3<C>, frequency: usize) -> Self {
         Ray {
@@ -37,53 +36,56 @@ where
         &self.direction
     }
 
-    pub fn trace<S, N, R>(&self, scene: &S, rng: &mut R) -> u32
+    pub fn trace<S, M, R>(&self, scene: &S, rng: &mut R) -> bool
     where
-        S: Scene<N, C>,
-        N: ArrayLength<C> + ArrayLength<Density>,
+        S: Scene<Material = M>,
+        M: Material<Coordinate = C>,
+        M::FrequencySize: ArrayLength<C>,
         R: Rng,
     {
         self.trace_inner(scene, rng, 0)
     }
 
-    fn trace_inner<S, N, R>(&self, scene: &S, rng: &mut R, level: usize) -> u32
+    fn trace_inner<S, M, R>(&self, scene: &S, rng: &mut R, level: usize) -> bool
     where
-        S: Scene<N, C>,
-        N: ArrayLength<C> + ArrayLength<Density>,
+        S: Scene<Material = M>,
+        M: Material<Coordinate = C>,
+        M::FrequencySize: ArrayLength<C>,
         R: Rng,
     {
-        use crate::light::Event;
         use std::f32::consts::PI;
+        use num::NumCast;
 
         let max_level = 7;
         if level > max_level {
-            return 0;
+            return false;
         };
 
         match scene.find_intersect(self) {
             Some(result) => {
-                let dice = [rng.gen_range(0.0, 1.0), rng.gen_range(0.0, 1.0)];
-                let fate = result.material.fate(self.frequency, dice);
-                let photon = if fate.emission { 1 } else { 0 };
-                match fate.event {
-                    Event::Decay => photon,
+                let emission = <M::Probability as NumCast>::from(rng.gen_range(0.0, 1.0)).unwrap();
+                let event = <M::Probability as NumCast>::from(rng.gen_range(0.0, 1.0)).unwrap();
+                let fate = result.material.fate(self.frequency, emission, event);
+                match fate {
+                    Event::Emission => true,
+                    Event::Decay => false,
                     Event::Diffuse => {
                         let a = C::from(rng.gen_range(0.0, 2.0 * PI)).unwrap();
                         let z = C::from(rng.gen_range(-1.0, 1.0)).unwrap();
                         let new = self.diffuse(&result.position, &result.normal, [a, z]);
-                        photon + new.trace_inner(scene, rng, level + 1)
+                        new.trace_inner(scene, rng, level + 1)
                     },
                     Event::Reflect => {
                         let new = self.reflect(&result.position, &result.normal);
-                        photon + new.trace_inner(scene, rng, level + 1)
+                        new.trace_inner(scene, rng, level + 1)
                     },
                     Event::Refract(factor) => {
                         let new = self.refract(&result.position, &result.normal, factor);
-                        photon + new.trace_inner(scene, rng, level + 1)
+                        new.trace_inner(scene, rng, level + 1)
                     },
                 }
             },
-            None => 0,
+            None => false,
         }
     }
 

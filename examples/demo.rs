@@ -1,70 +1,39 @@
 extern crate gusni;
 extern crate serde;
 extern crate bincode;
-extern crate generic_array;
+extern crate typenum;
 extern crate rand;
 
 use std::path::Path;
-use std::{
-    fs::File,
-    io::{Read, Write},
-    time::SystemTime,
-    thread,
-    sync::Arc,
+use std::{fs::File, io::Write, time::SystemTime, thread, sync::Arc};
+
+use gusni::{
+    core::{Buffer, Eye, V3},
+    tree::Sphere,
+    light::CustomMaterial,
 };
 
-use gusni::{Sample, Eye, V3, Sphere, Beam, BeamMaterial, Density};
-
 use serde::{Serialize, Deserialize};
-use num::Float;
-use bincode::{serialize, deserialize};
-use generic_array::{ArrayLength, typenum::U8};
+use bincode::serialize;
+use typenum::{Unsigned, IsGreater, U1, B1, U8};
 
 fn main() {
+    use self::CustomMaterial::{DiffuseBlue, DiffuseWhite, SemiMirrorRed, Light};
+
     let scene = {
-        let gray = Beam::red() + Beam::green() + Beam::blue();
-
-        let dr_red = BeamMaterial::<U8, f64>::new(
-            Beam::default(),
-            &Beam::red() * 0.5,
-            &gray * 0.5,
-            Beam::default(),
-            Beam::default(),
-        );
-        let d_blue = BeamMaterial::new(
-            Beam::default(),
-            Beam::blue(),
-            Beam::default(),
-            Beam::default(),
-            Beam::default(),
-        );
-        let e_gray = BeamMaterial::new(
-            gray.clone(),
-            Beam::default(),
-            Beam::default(),
-            Beam::default(),
-            Beam::default(),
-        );
-        let d_gray = BeamMaterial::new(
-            Beam::default(),
-            gray.clone(),
-            Beam::default(),
-            Beam::default(),
-            Beam::default(),
-        );
-
         let r = 100000.0;
-        let zp = Sphere::new(V3::new(0.0, 0.0, -r + 20.0), r, d_blue.clone());
-        let zn = Sphere::new(V3::new(0.0, 0.0, -r - 10.0), r, d_gray.clone());
-        let yp = Sphere::new(V3::new(0.0, r + 10.0, 0.0), r, d_gray.clone());
-        let yn = Sphere::new(V3::new(0.0, -r - 10.0, 0.0), r, d_gray.clone());
-        let xp = Sphere::new(V3::new(r + 10.0, 0.0, 0.0), r, d_gray.clone());
-        let xn = Sphere::new(V3::new(-r - 10.0, 0.0, 0.0), r, d_gray.clone());
 
-        let a = Sphere::new(V3::new(-0.9, 0.0, 0.0), 1.0, dr_red.clone());
-        let b = Sphere::new(V3::new(1.5, 1.0, 0.5), 1.5, dr_red.clone());
+        let zp = Sphere::new(V3::new(0.0, 0.0, -r + 10.0), r, DiffuseBlue);
+        let zn = Sphere::new(V3::new(0.0, 0.0, -r - 10.0), r, DiffuseWhite);
+        let yp = Sphere::new(V3::new(0.0, r + 10.0, 0.0), r, DiffuseWhite);
+        let yn = Sphere::new(V3::new(0.0, -r - 10.0, 0.0), r, DiffuseWhite);
+        let xp = Sphere::new(V3::new(r + 10.0, 0.0, 0.0), r, DiffuseWhite);
+        let xn = Sphere::new(V3::new(-r - 10.0, 0.0, 0.0), r, DiffuseWhite);
 
-        let source = Sphere::new(V3::new(0.0, 1000.0 + 9.8, -4.0), 1000.0, e_gray.clone());
+        let a = Sphere::new(V3::new(-0.9, 0.0, 0.0), 1.0, SemiMirrorRed);
+        let b = Sphere::new(V3::new(1.5, 1.0, 0.5), 1.5, SemiMirrorRed);
+
+        let source = Sphere::new(V3::new(0.0, 1000.0 + 9.97, -4.0), 1000.0, Light);
 
         Arc::new(vec![zp, zn, yp, yn, xp, xn, a, b, source])
     };
@@ -77,7 +46,7 @@ fn main() {
 
         width: 1.6,
         height: 0.9,
-        distance: 1.2,
+        distance: 0.6,
     });
 
     let threads = (0..8)
@@ -88,11 +57,11 @@ fn main() {
                 let horizontal_count = 1920;
                 let vertical_count = 1080;
                 let mut rng = rand::thread_rng();
-                let mut sample = Sample::new(horizontal_count, vertical_count);
+                let mut buffer = Buffer::<U8>::new(horizontal_count, vertical_count);
                 let start = SystemTime::now();
                 let sample_count = 4;
                 for _ in 0..sample_count {
-                    sample.trace(&mut rng, &eye, scene.as_ref());
+                    buffer.trace(&mut rng, &eye, scene.as_ref());
                 }
                 let traced = SystemTime::now();
                 let duration = traced.duration_since(start).unwrap();
@@ -100,13 +69,13 @@ fn main() {
                     "thread: {:?}, tracing time: {:?}, {:?}",
                     i, duration, sample_count
                 );
-                sample
+                buffer
             })
         })
         .collect::<Vec<_>>();
 
     let start = SystemTime::now();
-    let sample: Sample<U8, f64> = threads
+    let buffer = threads
         .into_iter()
         .fold(None, |a, handle| {
             let sample = handle.join().unwrap();
@@ -117,48 +86,15 @@ fn main() {
         })
         .unwrap();
 
-    store_tga(&sample, "target/demo.tga");
+    store_tga(&buffer, "target/demo.tga");
     let written = SystemTime::now();
     println!("total time: {:?}", written.duration_since(start).unwrap());
 }
 
-pub fn load<P, N, C>(path: P) -> Option<Sample<N, C>>
+fn store_tga<P, L>(buffer: &Buffer<L>, path: P)
 where
     P: AsRef<Path>,
-    Beam<u32, N>: Default + Clone,
-    N: ArrayLength<u32> + ArrayLength<C> + ArrayLength<Density>,
-    C: Default + Float,
-    for<'de> Sample<N, C>: Deserialize<'de>,
-{
-    match File::open(path) {
-        Ok(mut file) => {
-            let mut data = Vec::new();
-            file.read_to_end(&mut data).unwrap();
-            Some(deserialize(data.as_slice()).unwrap())
-        },
-        Err(_) => None,
-    }
-}
-
-pub fn store<P, N, C>(sample: &Sample<N, C>, path: P)
-where
-    P: AsRef<Path>,
-    Beam<u32, N>: Default + Clone,
-    N: ArrayLength<u32> + ArrayLength<C> + ArrayLength<Density>,
-    C: Default + Float,
-    Sample<N, C>: Serialize,
-{
-    let image_encoded: Vec<u8> = serialize(sample).unwrap();
-    let mut file = File::create(path).unwrap();
-    file.write(image_encoded.as_slice()).unwrap();
-}
-
-fn store_tga<P, N, C>(sample: &Sample<N, C>, path: P)
-where
-    P: AsRef<Path>,
-    Beam<u32, N>: Default + Clone,
-    N: ArrayLength<u32> + ArrayLength<C> + ArrayLength<Density>,
-    C: Default + Float,
+    L: Unsigned + IsGreater<U1, Output = B1>,
 {
     #[derive(Serialize, Deserialize)]
     pub struct TgaHeader {
@@ -175,7 +111,7 @@ where
     }
 
     impl TgaHeader {
-        pub fn rgb(width: u32, height: u32) -> Self {
+        pub fn rgb(width: usize, height: usize) -> Self {
             TgaHeader {
                 id_length: 0,
                 color_map_type: 0,
@@ -191,9 +127,12 @@ where
         }
     }
 
-    let image_header = TgaHeader::rgb(sample.width(), sample.height());
+    let image_header = TgaHeader::rgb(buffer.width(), buffer.height());
     let mut file = File::create(path).unwrap();
     file.write(serialize(&image_header).unwrap().as_slice())
         .unwrap();
-    file.write(sample.bitmap(8.0, true).as_slice()).unwrap();
+    let mut b = Vec::with_capacity(buffer.width() * buffer.height() * 3);
+    b.resize(buffer.width() * buffer.height() * 3, 0);
+    buffer.write(8.0, true, b.as_mut());
+    file.write(b.as_ref()).unwrap();
 }

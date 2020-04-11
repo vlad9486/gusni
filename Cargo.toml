@@ -10,9 +10,8 @@ features = ["derive"]
 [dependencies.num]
 version = "0.2"
 
-[dependencies.generic-array]
-version = "0.13"
-features = ["serde"]
+[dependencies.typenum]
+version = "1.11"
 
 [dependencies.rand]
 version = "0.7"

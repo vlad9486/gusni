@@ -112,7 +112,7 @@ where
             let color = WaveLengthLinear::<W>::new().enumerate().fold(
                 Rgb::default(),
                 |color, (i, wave)| {
-                    let density = (beam[i] as f64) * scale / (self.sample_count as f64);
+                    let density = (beam[i] as f64) * scale / ((self.sample_count * W::to_usize()) as f64);
                     color + wave.color() * density
                 },
             );

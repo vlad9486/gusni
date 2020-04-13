@@ -15,7 +15,7 @@ use gusni::{
 
 use serde::{Serialize, Deserialize};
 use bincode::serialize;
-use typenum::{Unsigned, IsGreater, U1, B1, U8};
+use typenum::{Unsigned, IsGreater, U1, B1};
 
 fn main() {
     use self::CustomMaterial::{DiffuseBlue, DiffuseWhite, SemiMirrorRed, Light};
@@ -33,7 +33,7 @@ fn main() {
         let a = Sphere::new(V3::new(-0.9, 0.0, 0.0), 1.0, SemiMirrorRed);
         let b = Sphere::new(V3::new(1.5, 1.0, 0.5), 1.5, SemiMirrorRed);
 
-        let source = Sphere::new(V3::new(0.0, 1000.0 + 9.97, -4.0), 1000.0, Light);
+        let source = Sphere::new(V3::new(0.0, 1000.0 + 9.95, -4.0), 1000.0, Light);
 
         Arc::new(vec![zp, zn, yp, yn, xp, xn, a, b, source])
     };
@@ -57,9 +57,9 @@ fn main() {
                 let horizontal_count = 1920;
                 let vertical_count = 1080;
                 let mut rng = rand::thread_rng();
-                let mut buffer = Buffer::<U8>::new(horizontal_count, vertical_count);
+                let mut buffer = Buffer::<typenum::U256>::new(horizontal_count, vertical_count);
                 let start = SystemTime::now();
-                let sample_count = 4;
+                let sample_count = 1;
                 for _ in 0..sample_count {
                     buffer.trace(&mut rng, &eye, scene.as_ref());
                 }
@@ -133,6 +133,6 @@ where
         .unwrap();
     let mut b = Vec::with_capacity(buffer.width() * buffer.height() * 3);
     b.resize(buffer.width() * buffer.height() * 3, 0);
-    buffer.write(8.0, true, b.as_mut());
+    buffer.write(64.0, true, b.as_mut());
     file.write(b.as_ref()).unwrap();
 }

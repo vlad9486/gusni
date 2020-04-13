@@ -1,10 +1,8 @@
 use std::{
     ops::{Add, Mul},
-    marker::PhantomData,
     iter::Iterator,
 };
 use serde::{Serialize, Deserialize};
-use typenum::{Unsigned, IsGreater, U1, B1};
 
 #[derive(Default, Clone, Serialize, Deserialize, Debug)]
 pub struct Rgb {
@@ -70,39 +68,31 @@ impl WaveLength {
     }
 }
 
-pub struct WaveLengthLinear<L>
-where
-    L: Unsigned + IsGreater<U1, Output = B1>,
-{
+pub struct WaveLengthLinear {
+    resolution: usize,
     position: usize,
-    phantom_data: PhantomData<L>,
 }
 
-impl<L> WaveLengthLinear<L>
-where
-    L: Unsigned + IsGreater<U1, Output = B1>,
-{
-    pub fn new() -> Self {
+impl WaveLengthLinear {
+    pub fn new(resolution: usize) -> Self {
+        assert!(resolution > 1);
         WaveLengthLinear {
+            resolution: resolution,
             position: 0,
-            phantom_data: PhantomData,
         }
     }
 }
 
-impl<L> Iterator for WaveLengthLinear<L>
-where
-    L: Unsigned + IsGreater<U1, Output = B1>,
-{
+impl Iterator for WaveLengthLinear {
     type Item = WaveLength;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.position == L::to_usize() {
+        if self.position == self.resolution {
             None
         } else {
             let first = TABLE.first().unwrap().0;
             let last = TABLE.last().unwrap().0;
-            let offset = (last - first) * (self.position as f64) / ((L::to_usize() - 1) as f64);
+            let offset = (last - first) * (self.position as f64) / ((self.resolution - 1) as f64);
             self.position += 1;
             Some(WaveLength(first + offset))
         }

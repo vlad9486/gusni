@@ -3,14 +3,10 @@ use super::ray::Ray;
 use super::scene::Scene;
 use super::wave::{WaveLength, WaveLengthLinear, Rgb};
 
-use std::{
-    ops::{Add, AddAssign},
-    marker::PhantomData,
-};
+use std::ops::{Add, AddAssign};
 use serde::{Serialize, Deserialize};
 use num::Float;
 use rand::Rng;
-use typenum::{Unsigned, IsGreater, U1, B1};
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Eye<C>
@@ -40,31 +36,25 @@ where
     }
 }
 
-pub struct Buffer<W>
-where
-    W: Unsigned + IsGreater<U1, Output = B1>,
-{
+pub struct Buffer {
     width: usize,
     height: usize,
+    wave_resolution: usize,
     data: Vec<u32>,
     sample_count: usize,
-    phantom_data: PhantomData<W>,
 }
 
-impl<W> Buffer<W>
-where
-    W: Unsigned + IsGreater<U1, Output = B1>,
-{
-    pub fn new(width: usize, height: usize) -> Self {
-        let capacity = width * height * W::to_usize();
+impl Buffer {
+    pub fn new(width: usize, height: usize, wave_resolution: usize) -> Self {
+        let capacity = width * height * wave_resolution;
         let mut data = Vec::with_capacity(capacity);
         data.resize(capacity, 0);
         Buffer {
             width: width,
             height: height,
+            wave_resolution: wave_resolution,
             data: data,
             sample_count: 0,
-            phantom_data: PhantomData,
         }
     }
 
@@ -88,7 +78,7 @@ where
     {
         for i in 0..self.height {
             for j in 0..self.width {
-                for (k, l) in WaveLengthLinear::<W>::new().enumerate() {
+                for (k, l) in WaveLengthLinear::new(self.wave_resolution).enumerate() {
                     let dx = rng.gen_range(-0.5, 0.5);
                     let dy = rng.gen_range(-0.5, 0.5);
                     let x = C::from(j).unwrap() + C::from(dx).unwrap();
@@ -96,7 +86,7 @@ where
                     let ray = eye.ray(x, y, self.width, self.height, l);
                     let photon = ray.trace(scene, rng);
                     if photon {
-                        let index = (i * self.width + j) * W::to_usize() + k;
+                        let index = (i * self.width + j) * self.wave_resolution + k;
                         self.data[index] += 1;
                     }
                 }
@@ -108,39 +98,34 @@ where
 
     pub fn write(&self, scale: f64, reverse: bool, buffer: &mut [u8]) {
         let mut position = 0;
-        for beam in self.data.chunks(W::to_usize()) {
-            let color = WaveLengthLinear::<W>::new().enumerate().fold(
-                Rgb::default(),
-                |color, (i, wave)| {
-                    let density = (beam[i] as f64) * scale / ((self.sample_count * W::to_usize()) as f64);
+        for beam in self.data.chunks(self.wave_resolution) {
+            let color = WaveLengthLinear::new(self.wave_resolution)
+                .enumerate()
+                .fold(Rgb::default(), |color, (i, wave)| {
+                    let density = (beam[i] as f64) * scale
+                        / ((self.sample_count * self.wave_resolution) as f64);
                     color + wave.color() * density
-                },
-            );
+                });
             color.write(reverse, &mut buffer[position..(position + 3)]);
             position += 3;
         }
     }
 }
 
-impl<W> AddAssign for Buffer<W>
-where
-    W: Unsigned + IsGreater<U1, Output = B1>,
-{
+impl AddAssign for Buffer {
     fn add_assign(&mut self, rhs: Self) {
         assert_eq!(self.width, rhs.width);
         assert_eq!(self.height, rhs.height);
+        assert_eq!(self.wave_resolution, rhs.wave_resolution);
 
         self.sample_count += rhs.sample_count;
-        for i in 0..(self.height * self.width * W::to_usize()) {
+        for i in 0..(self.height * self.width * self.wave_resolution) {
             self.data[i] += rhs.data[i];
         }
     }
 }
 
-impl<W> Add for Buffer<W>
-where
-    W: Unsigned + IsGreater<U1, Output = B1>,
-{
+impl Add for Buffer {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {

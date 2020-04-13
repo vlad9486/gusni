@@ -1,7 +1,6 @@
 extern crate gusni;
 extern crate serde;
 extern crate bincode;
-extern crate typenum;
 extern crate rand;
 
 use std::path::Path;
@@ -15,7 +14,6 @@ use gusni::{
 
 use serde::{Serialize, Deserialize};
 use bincode::serialize;
-use typenum::{Unsigned, IsGreater, U1, B1};
 
 fn main() {
     use self::CustomMaterial::{DiffuseBlue, DiffuseWhite, SemiMirrorRed, Light};
@@ -33,7 +31,7 @@ fn main() {
         let a = Sphere::new(V3::new(-0.9, 0.0, 0.0), 1.0, SemiMirrorRed);
         let b = Sphere::new(V3::new(1.5, 1.0, 0.5), 1.5, SemiMirrorRed);
 
-        let source = Sphere::new(V3::new(0.0, 1000.0 + 9.95, -4.0), 1000.0, Light);
+        let source = Sphere::new(V3::new(0.0, 1000.0 + 9.99, -4.0), 1000.0, Light);
 
         Arc::new(vec![zp, zn, yp, yn, xp, xn, a, b, source])
     };
@@ -54,10 +52,12 @@ fn main() {
             let eye = eye.clone();
             let scene = scene.clone();
             thread::spawn(move || {
-                let horizontal_count = 1920;
-                let vertical_count = 1080;
+                let horizontal_resolution = 1920;
+                let vertical_resolution = 1080;
+                let wave_resolution = 256;
                 let mut rng = rand::thread_rng();
-                let mut buffer = Buffer::<typenum::U256>::new(horizontal_count, vertical_count);
+                let mut buffer =
+                    Buffer::new(horizontal_resolution, vertical_resolution, wave_resolution);
                 let start = SystemTime::now();
                 let sample_count = 1;
                 for _ in 0..sample_count {
@@ -65,9 +65,10 @@ fn main() {
                 }
                 let traced = SystemTime::now();
                 let duration = traced.duration_since(start).unwrap();
+                let per_ray = duration.as_secs_f64() / ((sample_count * wave_resolution) as f64);
                 println!(
-                    "thread: {:?}, tracing time: {:?}, {:?}",
-                    i, duration, sample_count
+                    "thread: {:?}, tracing time: {:?}, {:?}, {:?}, {:?}",
+                    i, duration, sample_count, wave_resolution, per_ray,
                 );
                 buffer
             })
@@ -91,10 +92,9 @@ fn main() {
     println!("total time: {:?}", written.duration_since(start).unwrap());
 }
 
-fn store_tga<P, L>(buffer: &Buffer<L>, path: P)
+fn store_tga<P>(buffer: &Buffer, path: P)
 where
     P: AsRef<Path>,
-    L: Unsigned + IsGreater<U1, Output = B1>,
 {
     #[derive(Serialize, Deserialize)]
     pub struct TgaHeader {

@@ -16,28 +16,32 @@ use serde::{Serialize, Deserialize};
 use bincode::serialize;
 
 fn main() {
-    use self::CustomMaterial::{DiffuseBlue, DiffuseWhite, SemiMirrorRed, Light};
+    use self::CustomMaterial::{
+        DiffuseWhite, Glass, DiffuseGreen, DiffuseBlue, SemiMirrorRed, Light,
+    };
 
     let scene = {
         let r = 100000.0;
 
         let zp = Sphere::new(V3::new(0.0, 0.0, -r + 10.0), r, DiffuseBlue);
-        let zn = Sphere::new(V3::new(0.0, 0.0, -r - 10.0), r, DiffuseWhite);
+        let zn = Sphere::new(V3::new(0.0, 0.0, -r - 20.0), r, DiffuseWhite);
         let yp = Sphere::new(V3::new(0.0, r + 10.0, 0.0), r, DiffuseWhite);
         let yn = Sphere::new(V3::new(0.0, -r - 10.0, 0.0), r, DiffuseWhite);
-        let xp = Sphere::new(V3::new(r + 10.0, 0.0, 0.0), r, DiffuseWhite);
-        let xn = Sphere::new(V3::new(-r - 10.0, 0.0, 0.0), r, DiffuseWhite);
+        let xp = Sphere::new(V3::new(r + 10.0, 0.0, 0.0), r, DiffuseGreen);
+        let xn = Sphere::new(V3::new(-r - 10.0, 0.0, 0.0), r, DiffuseGreen);
 
-        let a = Sphere::new(V3::new(-0.9, 0.0, 0.0), 1.0, SemiMirrorRed);
-        let b = Sphere::new(V3::new(1.5, 1.0, 0.5), 1.5, SemiMirrorRed);
+        let a = Sphere::new(V3::new(-4.0, -7.0, 3.0), 3.0, Glass(false));
+        let b = Sphere::new(V3::new(-4.0, -7.0, 3.0), 2.99, Glass(true));
+        let c = Sphere::new(V3::new(4.0, -7.5, 6.0), 2.5, SemiMirrorRed);
 
-        let source = Sphere::new(V3::new(0.0, 1000.0 + 9.99, -4.0), 1000.0, Light);
+        let source = Sphere::new(V3::new(0.0, 1000.0 + 9.99, 0.0), 1000.0, Light);
 
-        Arc::new(vec![zp, zn, yp, yn, xp, xn, a, b, source])
+        Arc::new(vec![zp, zn, yp, yn, xp, xn, a, b, c, source])
     };
 
     let eye = Arc::new(Eye {
-        position: V3::new(0.0, 0.0, -9.0),
+        position: V3::new(0.0, 0.0, -18.0),
+
         forward: V3::new(0.0, 0.0, 1.0),
         right: V3::new(1.0, 0.0, 0.0),
         up: V3::new(0.0, 1.0, 0.0),
@@ -54,7 +58,7 @@ fn main() {
             thread::spawn(move || {
                 let horizontal_resolution = 1920;
                 let vertical_resolution = 1080;
-                let wave_resolution = 256;
+                let wave_resolution = 64;
                 let mut rng = rand::thread_rng();
                 let mut buffer =
                     Buffer::new(horizontal_resolution, vertical_resolution, wave_resolution);

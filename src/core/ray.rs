@@ -60,7 +60,7 @@ where
             Some(result) => {
                 let emission = rng.gen_range(0.0, 1.0);
                 let event = rng.gen_range(0.0, 1.0);
-                let fate = result.material.fate(&self.wave_length, emission, event);
+                let fate = result.material.fate(&self.wave_length, result.side, emission, event);
                 match fate {
                     Event::Emission => true,
                     Event::Decay => false,

@@ -140,6 +140,7 @@ where
             position: position,
             normal: normal,
             material: &self.material,
+            side: info.side,
         }
     }
 }

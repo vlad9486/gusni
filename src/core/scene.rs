@@ -19,7 +19,7 @@ pub trait Material<C>
 where
     C: Float,
 {
-    fn fate(&self, wave_length: &WaveLength, emission: f64, event: f64) -> Event<C>;
+    fn fate(&self, wave_length: &WaveLength, side: bool, emission: f64, event: f64) -> Event<C>;
 }
 
 pub struct Intersect<'a, M, C>
@@ -30,6 +30,7 @@ where
     pub position: V3<C>,
     pub normal: V3<C>,
     pub material: &'a M,
+    pub side: bool,
 }
 
 pub trait Scene<C>

@@ -1,4 +1,4 @@
-use crate::core::{Material, WaveLength, Event};
+use crate::core::{Material, WaveLength, Event, Side};
 
 pub enum CustomMaterial {
     SemiMirrorRed,
@@ -11,7 +11,7 @@ pub enum CustomMaterial {
 }
 
 impl Material<f64> for CustomMaterial {
-    fn fate(&self, wave_length: &WaveLength, side: bool, emission: f64, event: f64) -> Event<f64> {
+    fn fate(&self, wave_length: &WaveLength, side: Side, emission: f64, event: f64) -> Event<f64> {
         match self {
             &CustomMaterial::SemiMirrorRed => {
                 let (r, _, _) = wave_length.clone().color().tuple(false);
@@ -24,34 +24,34 @@ impl Material<f64> for CustomMaterial {
                 }
             },
             &CustomMaterial::Glass(inverse) => {
-                if event < 0.05 {
+                if event < 0.0 {
                     Event::Diffuse
                 } else {
                     let l = wave_length.0 / 1000.0;
                     let x = (0.9 - l) / 0.5;
                     let index = 1.51 + 0.04 * x * x;
-                    Event::Refract(if inverse ^ side { index } else { 1.0 / index })
+                    Event::Refract(if inverse ^ side.outer() { index } else { 1.0 / index })
                 }
             },
             &CustomMaterial::DiffuseRed => {
-                let (f, _, _) = wave_length.clone().color().tuple(false);
-                if event < f {
+                let (r, g, b) = wave_length.clone().color().tuple(false);
+                if event < r + g * 0.2 + b * 0.2 {
                     Event::Diffuse
                 } else {
                     Event::Decay
                 }
             },
             &CustomMaterial::DiffuseGreen => {
-                let (_, f, _) = wave_length.clone().color().tuple(false);
-                if event < f {
+                let (r, g, b) = wave_length.clone().color().tuple(false);
+                if event < r * 0.2 + g + b * 0.2 {
                     Event::Diffuse
                 } else {
                     Event::Decay
                 }
             },
             &CustomMaterial::DiffuseBlue => {
-                let (_, _, f) = wave_length.clone().color().tuple(false);
-                if event < f {
+                let (r, g, b) = wave_length.clone().color().tuple(false);
+                if event < r * 0.2 + g * 0.2 + b {
                     Event::Diffuse
                 } else {
                     Event::Decay

@@ -7,7 +7,7 @@ use std::path::Path;
 use std::{fs::File, io::Write, time::SystemTime, thread, sync::Arc};
 
 use gusni::{
-    core::{Buffer, Eye, V3},
+    core::{Buffer, Eye, V3, WaveLengthFactory, WaveLengthTrimmedFactory},
     tree::Sphere,
     light::CustomMaterial,
 };
@@ -30,17 +30,17 @@ fn main() {
         let xp = Sphere::new(V3::new(r + 10.0, 0.0, 0.0), r, DiffuseGreen);
         let xn = Sphere::new(V3::new(-r - 10.0, 0.0, 0.0), r, DiffuseGreen);
 
-        let a = Sphere::new(V3::new(-4.0, -7.0, 3.0), 3.0, Glass(false));
-        let b = Sphere::new(V3::new(-4.0, -7.0, 3.0), 2.99, Glass(true));
+        let a = Sphere::new(V3::new(-4.0, -6.0, 3.0), 4.0, Glass(false));
+        let b = Sphere::new(V3::new(-4.0, -6.0, 3.0), 3.99, Glass(true));
         let c = Sphere::new(V3::new(4.0, -7.5, 6.0), 2.5, SemiMirrorRed);
 
-        let source = Sphere::new(V3::new(0.0, 1000.0 + 9.99, 0.0), 1000.0, Light);
+        let source = Sphere::new(V3::new(0.0, 1000.0 + 9.98, 0.0), 1000.0, Light);
 
         Arc::new(vec![zp, zn, yp, yn, xp, xn, a, b, c, source])
     };
 
     let eye = Arc::new(Eye {
-        position: V3::new(0.0, 0.0, -18.0),
+        position: V3::new(0.0, 0.0, -19.0),
 
         forward: V3::new(0.0, 0.0, 1.0),
         right: V3::new(1.0, 0.0, 0.0),
@@ -48,7 +48,7 @@ fn main() {
 
         width: 1.6,
         height: 0.9,
-        distance: 0.6,
+        distance: 0.8,
     });
 
     let threads = (0..8)
@@ -56,12 +56,15 @@ fn main() {
             let eye = eye.clone();
             let scene = scene.clone();
             thread::spawn(move || {
-                let horizontal_resolution = 1920;
-                let vertical_resolution = 1080;
-                let wave_resolution = 64;
+                let horizontal_resolution = 640;
+                let vertical_resolution = 360;
                 let mut rng = rand::thread_rng();
                 let mut buffer =
-                    Buffer::new(horizontal_resolution, vertical_resolution, wave_resolution);
+                    Buffer::new(
+                        horizontal_resolution,
+                        vertical_resolution,
+                        WaveLengthTrimmedFactory,
+                    );
                 let start = SystemTime::now();
                 let sample_count = 1;
                 for _ in 0..sample_count {
@@ -69,10 +72,11 @@ fn main() {
                 }
                 let traced = SystemTime::now();
                 let duration = traced.duration_since(start).unwrap();
-                let per_ray = duration.as_secs_f64() / ((sample_count * wave_resolution) as f64);
+                let ray_per_pixel = sample_count * WaveLengthTrimmedFactory.resolution();
+                let per_ray = duration.as_secs_f64() / (ray_per_pixel as f64);
                 println!(
-                    "thread: {:?}, tracing time: {:?}, {:?}, {:?}, {:?}",
-                    i, duration, sample_count, wave_resolution, per_ray,
+                    "thread: {:?}, tracing time: {:?}, {:?}, {:?}",
+                    i, duration, ray_per_pixel, per_ray,
                 );
                 buffer
             })
@@ -96,9 +100,10 @@ fn main() {
     println!("total time: {:?}", written.duration_since(start).unwrap());
 }
 
-fn store_tga<P>(buffer: &Buffer, path: P)
+fn store_tga<P, F>(buffer: &Buffer<F>, path: P)
 where
     P: AsRef<Path>,
+    F: WaveLengthFactory,
 {
     #[derive(Serialize, Deserialize)]
     pub struct TgaHeader {

@@ -4,6 +4,20 @@ use super::wave::WaveLength;
 
 use num::Float;
 
+pub enum Side {
+    Outer,
+    Inner,
+}
+
+impl Side {
+    pub fn outer(&self) -> bool {
+        match self {
+            &Side::Outer => true,
+            &Side::Inner => false,
+        }
+    }
+}
+
 pub enum Event<C>
 where
     C: Float,
@@ -19,7 +33,7 @@ pub trait Material<C>
 where
     C: Float,
 {
-    fn fate(&self, wave_length: &WaveLength, side: bool, emission: f64, event: f64) -> Event<C>;
+    fn fate(&self, wave_length: &WaveLength, side: Side, emission: f64, event: f64) -> Event<C>;
 }
 
 pub struct Intersect<'a, M, C>
@@ -30,7 +44,7 @@ where
     pub position: V3<C>,
     pub normal: V3<C>,
     pub material: &'a M,
-    pub side: bool,
+    pub side: Side,
 }
 
 pub trait Scene<C>

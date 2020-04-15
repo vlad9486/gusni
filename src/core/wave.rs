@@ -68,18 +68,43 @@ impl WaveLength {
     }
 }
 
+pub trait WaveLengthFactory {
+    type Iter: Iterator<Item = WaveLength>;
+
+    fn iter(&self) -> Self::Iter;
+    fn resolution(&self) -> usize;
+}
+
+pub struct WaveLengthLinearFactory {
+    resolution: usize,
+}
+
 pub struct WaveLengthLinear {
     resolution: usize,
     position: usize,
 }
 
-impl WaveLengthLinear {
+impl WaveLengthLinearFactory {
     pub fn new(resolution: usize) -> Self {
         assert!(resolution > 1);
-        WaveLengthLinear {
+        WaveLengthLinearFactory {
             resolution: resolution,
+        }
+    }
+}
+
+impl WaveLengthFactory for WaveLengthLinearFactory {
+    type Iter = WaveLengthLinear;
+
+    fn iter(&self) -> Self::Iter {
+        WaveLengthLinear {
+            resolution: self.resolution,
             position: 0,
         }
+    }
+
+    fn resolution(&self) -> usize {
+        self.resolution
     }
 }
 
@@ -95,6 +120,47 @@ impl Iterator for WaveLengthLinear {
             let offset = (last - first) * (self.position as f64) / ((self.resolution - 1) as f64);
             self.position += 1;
             Some(WaveLength(first + offset))
+        }
+    }
+}
+
+pub struct WaveLengthTrimmedFactory;
+
+pub struct WaveLengthTrimmed {
+    position: usize,
+}
+
+impl WaveLengthTrimmed {
+    pub fn new() -> Self {
+        WaveLengthTrimmed {
+            position: 0,
+        }
+    }
+}
+
+impl WaveLengthFactory for WaveLengthTrimmedFactory {
+    type Iter = WaveLengthTrimmed;
+
+    fn iter(&self) -> Self::Iter {
+        WaveLengthTrimmed {
+            position: 0,
+        }
+    }
+
+    fn resolution(&self) -> usize {
+        360
+    }
+}
+
+impl Iterator for WaveLengthTrimmed {
+    type Item = WaveLength;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.position == 360 {
+            None
+        } else {
+            self.position += 1;
+            Some(WaveLength(380.0 + (self.position as f64)))
         }
     }
 }

@@ -1,7 +1,7 @@
 use super::algebra::V3;
 use super::ray::Ray;
 use super::scene::Scene;
-use super::wave::{WaveLength, WaveLengthLinear, Rgb};
+use super::wave::{WaveLength, Rgb, WaveLengthFactory};
 
 use std::ops::{Add, AddAssign};
 use serde::{Serialize, Deserialize};
@@ -36,23 +36,29 @@ where
     }
 }
 
-pub struct Buffer {
+pub struct Buffer<F>
+where
+    F: WaveLengthFactory,
+{
+    factory: F,
     width: usize,
     height: usize,
-    wave_resolution: usize,
-    data: Vec<u32>,
+    data: Vec<u16>,
     sample_count: usize,
 }
 
-impl Buffer {
-    pub fn new(width: usize, height: usize, wave_resolution: usize) -> Self {
-        let capacity = width * height * wave_resolution;
+impl<F> Buffer<F>
+where
+    F: WaveLengthFactory,
+{
+    pub fn new(width: usize, height: usize, factory: F) -> Self {
+        let capacity = width * height * factory.resolution();
         let mut data = Vec::with_capacity(capacity);
         data.resize(capacity, 0);
         Buffer {
+            factory: factory,
             width: width,
             height: height,
-            wave_resolution: wave_resolution,
             data: data,
             sample_count: 0,
         }
@@ -78,7 +84,7 @@ impl Buffer {
     {
         for i in 0..self.height {
             for j in 0..self.width {
-                for (k, l) in WaveLengthLinear::new(self.wave_resolution).enumerate() {
+                for (k, l) in self.factory.iter().enumerate() {
                     let dx = rng.gen_range(-0.5, 0.5);
                     let dy = rng.gen_range(-0.5, 0.5);
                     let x = C::from(j).unwrap() + C::from(dx).unwrap();
@@ -86,7 +92,7 @@ impl Buffer {
                     let ray = eye.ray(x, y, self.width, self.height, l);
                     let photon = ray.trace(scene, rng);
                     if photon {
-                        let index = (i * self.width + j) * self.wave_resolution + k;
+                        let index = (i * self.width + j) * self.factory.resolution() + k;
                         self.data[index] += 1;
                     }
                 }
@@ -98,12 +104,12 @@ impl Buffer {
 
     pub fn write(&self, scale: f64, reverse: bool, buffer: &mut [u8]) {
         let mut position = 0;
-        for beam in self.data.chunks(self.wave_resolution) {
-            let color = WaveLengthLinear::new(self.wave_resolution)
+        for beam in self.data.chunks(self.factory.resolution()) {
+            let color = self.factory.iter()
                 .enumerate()
                 .fold(Rgb::default(), |color, (i, wave)| {
                     let density = (beam[i] as f64) * scale
-                        / ((self.sample_count * self.wave_resolution) as f64);
+                        / ((self.sample_count * self.factory.resolution()) as f64);
                     color + wave.color() * density
                 });
             color.write(reverse, &mut buffer[position..(position + 3)]);
@@ -112,20 +118,25 @@ impl Buffer {
     }
 }
 
-impl AddAssign for Buffer {
+impl<F> AddAssign for Buffer<F>
+where
+    F: WaveLengthFactory,
+{
     fn add_assign(&mut self, rhs: Self) {
         assert_eq!(self.width, rhs.width);
         assert_eq!(self.height, rhs.height);
-        assert_eq!(self.wave_resolution, rhs.wave_resolution);
 
         self.sample_count += rhs.sample_count;
-        for i in 0..(self.height * self.width * self.wave_resolution) {
+        for i in 0..(self.height * self.width * self.factory.resolution()) {
             self.data[i] += rhs.data[i];
         }
     }
 }
 
-impl Add for Buffer {
+impl<F> Add for Buffer<F>
+where
+    F: WaveLengthFactory,
+{
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {

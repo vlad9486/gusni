@@ -1,4 +1,4 @@
-use crate::core::{V3, Ray, Scene, Intersect, Material};
+use crate::core::{V3, Ray, Scene, Side, Intersect, Material};
 
 use std::cmp::Ordering;
 use serde::{Serialize, Deserialize};
@@ -68,7 +68,7 @@ where
     C: Float,
 {
     time: C,
-    side: bool,
+    side: Side,
 }
 
 impl<C> PartialEq for SphereInfo<C>
@@ -107,7 +107,7 @@ where
         let r = self.radius;
 
         let b = p * &q;
-        let (side, d) = {
+        let (outer, d) = {
             let s = &q * &q - r * r;
             (s >= zero, b * b - s)
         };
@@ -128,13 +128,13 @@ where
 
         time.map(|time| SphereInfo {
             time: time,
-            side: side,
+            side: if outer { Side::Outer } else { Side::Inner },
         })
     }
 
     fn result<'a>(&'a self, ray: &Ray<C>, info: Self::Info) -> Intersect<'a, Self::Material, C> {
         let position = ray.position() + &(ray.direction() * info.time);
-        let radius = if info.side { self.radius } else { -self.radius };
+        let radius = if info.side.outer() { self.radius } else { -self.radius };
         let normal = &(&position - &self.center) / radius;
         Intersect {
             position: position,

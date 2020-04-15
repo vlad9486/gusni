@@ -22,7 +22,7 @@ pub enum Event<C>
 where
     C: Float,
 {
-    Emission,
+    Emission(f64),
     Decay,
     Diffuse,
     Reflect,

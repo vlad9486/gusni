@@ -5,12 +5,16 @@ use serde::{Serialize, Deserialize};
 #[derive(Serialize, Deserialize)]
 pub enum CustomMaterial {
     SemiMirrorRed,
-    Glass(bool),
+    Glass {
+        inverse: bool,
+    },
     DiffuseRed,
     DiffuseGreen,
     DiffuseBlue,
     DiffuseWhite,
-    Light,
+    Light {
+        temperature: f64,
+    },
 }
 
 impl Material<f64> for CustomMaterial {
@@ -26,7 +30,9 @@ impl Material<f64> for CustomMaterial {
                     Event::Decay
                 }
             },
-            &CustomMaterial::Glass(inverse) => {
+            &CustomMaterial::Glass {
+                inverse: inverse,
+            } => {
                 if event < 0.0 {
                     Event::Diffuse
                 } else {
@@ -65,10 +71,40 @@ impl Material<f64> for CustomMaterial {
                 }
             },
             &CustomMaterial::DiffuseWhite => Event::Diffuse,
-            &CustomMaterial::Light => {
-                let _ = emission;
-                Event::Emission
+            &CustomMaterial::Light {
+                temperature: t,
+            } => {
+                if emission < 1.0 {
+                    let l = wave_length.0;
+                    let n = b(l, t);
+                    Event::Emission(n)
+                } else {
+                    Event::Decay
+                }
             },
         }
+    }
+}
+
+// not normalized
+fn b(l: f64, t: f64) -> f64 {
+    use std::f64;
+
+    // constants
+    let k = 1.380649;
+    let c = 2.99792458;
+    let h = 6.62607015;
+
+    // Planck's law
+    1e12 * 2.0 * h * c * c / ((l * l * l * l * l) * (f64::exp(1e6 * h * c / (l * k * t)) - 1.0))
+}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn basic() {
+        use super::b;
+
+        (360..830).map(|l| b(l as f64, 6000.0)).for_each(|b| println!("{}", b));
     }
 }

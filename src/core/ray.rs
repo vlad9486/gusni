@@ -36,7 +36,7 @@ where
         &self.direction
     }
 
-    pub fn trace<S, R>(&self, scene: &S, rng: &mut R) -> bool
+    pub fn trace<S, R>(&self, scene: &S, rng: &mut R) -> f64
     where
         S: Scene<C>,
         R: Rng,
@@ -44,7 +44,7 @@ where
         self.trace_inner(scene, rng, 0)
     }
 
-    fn trace_inner<S, R>(&self, scene: &S, rng: &mut R, level: usize) -> bool
+    fn trace_inner<S, R>(&self, scene: &S, rng: &mut R, level: usize) -> f64
     where
         S: Scene<C>,
         R: Rng,
@@ -53,7 +53,7 @@ where
 
         let max_level = 7;
         if level > max_level {
-            return false;
+            return 0.0;
         };
 
         match scene.find_intersect(self) {
@@ -64,8 +64,8 @@ where
                     .material
                     .fate(&self.wave_length, result.side, emission, event);
                 match fate {
-                    Event::Emission => true,
-                    Event::Decay => false,
+                    Event::Emission(d) => d,
+                    Event::Decay => 0.0,
                     Event::Diffuse => {
                         let a = C::from(rng.gen_range(0.0, 2.0 * PI)).unwrap();
                         let z = C::from(rng.gen_range(-1.0, 1.0)).unwrap();
@@ -82,7 +82,7 @@ where
                     },
                 }
             },
-            None => false,
+            None => 0.0,
         }
     }
 

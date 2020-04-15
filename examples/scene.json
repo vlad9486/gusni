@@ -61,7 +61,9 @@
         },
         "radius": 4.0,
         "material": {
-            "Glass": false
+            "Glass": {
+                "inverse": false
+            }
         }
     },
     {
@@ -70,9 +72,11 @@
             "y": -6.0,
             "z": 3.0
         },
-        "radius": 3.99,
+        "radius": 3.999,
         "material": {
-            "Glass": true
+            "Glass": {
+                "inverse": true
+            }
         }
     },
     {
@@ -91,7 +95,11 @@
             "z": 4.0
         },
         "radius": 1000.0,
-        "material": "Light"
+        "material": {
+            "Light": {
+                "temperature": 6000
+            }
+        }
     },
     {
         "center": {
@@ -100,6 +108,10 @@
             "z": -14.0
         },
         "radius": 1000.0,
-        "material": "Light"
+        "material": {
+            "Light": {
+                "temperature": 6000
+            }
+        }
     }
 ]

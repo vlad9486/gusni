@@ -112,6 +112,6 @@ where
         .unwrap();
     let mut b = Vec::with_capacity(buffer.width() * buffer.height() * 3);
     b.resize(buffer.width() * buffer.height() * 3, 0);
-    buffer.write(64.0, true, b.as_mut());
+    buffer.write(3072.0, true, b.as_mut());
     file.write(b.as_ref()).unwrap();
 }

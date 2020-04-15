@@ -43,7 +43,7 @@ where
     factory: F,
     width: usize,
     height: usize,
-    data: Vec<u16>,
+    data: Vec<f64>,
     sample_count: usize,
 }
 
@@ -54,7 +54,7 @@ where
     pub fn new(width: usize, height: usize, factory: F) -> Self {
         let capacity = width * height * factory.resolution();
         let mut data = Vec::with_capacity(capacity);
-        data.resize(capacity, 0);
+        data.resize(capacity, 0.0);
         Buffer {
             factory: factory,
             width: width,
@@ -91,10 +91,8 @@ where
                     let y = C::from(i).unwrap() + C::from(dy).unwrap();
                     let ray = eye.ray(x, y, self.width, self.height, l);
                     let photon = ray.trace(scene, rng);
-                    if photon {
-                        let index = (i * self.width + j) * self.factory.resolution() + k;
-                        self.data[index] += 1;
-                    }
+                    let index = (i * self.width + j) * self.factory.resolution() + k;
+                    self.data[index] += photon;
                 }
             }
         }

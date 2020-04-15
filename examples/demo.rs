@@ -73,10 +73,12 @@ fn main() {
                 let traced = SystemTime::now();
                 let duration = traced.duration_since(start).unwrap();
                 let ray_per_pixel = sample_count * WaveLengthTrimmedFactory.resolution();
-                let per_ray = duration.as_secs_f64() / (ray_per_pixel as f64);
+                let pixels = horizontal_resolution * vertical_resolution;
+                let rays = (ray_per_pixel as u128) * (pixels as u128);
+                let per_ray = duration.as_nanos() / rays;
                 println!(
                     "thread: {:?}, tracing time: {:?}, {:?}, {:?}",
-                    i, duration, ray_per_pixel, per_ray,
+                    i, duration, rays, per_ray,
                 );
                 buffer
             })

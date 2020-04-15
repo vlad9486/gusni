@@ -14,7 +14,7 @@ impl Material<f64> for CustomMaterial {
     fn fate(&self, wave_length: &WaveLength, side: Side, emission: f64, event: f64) -> Event<f64> {
         match self {
             &CustomMaterial::SemiMirrorRed => {
-                let (r, _, _) = wave_length.clone().color().tuple(false);
+                let (r, _, _) = wave_length.color().tuple(false);
                 if event < r {
                     Event::Diffuse
                 } else if event < 2.0 * r {
@@ -34,7 +34,7 @@ impl Material<f64> for CustomMaterial {
                 }
             },
             &CustomMaterial::DiffuseRed => {
-                let (r, g, b) = wave_length.clone().color().tuple(false);
+                let (r, g, b) = wave_length.color().tuple(false);
                 if event < r + g * 0.2 + b * 0.2 {
                     Event::Diffuse
                 } else {
@@ -42,7 +42,7 @@ impl Material<f64> for CustomMaterial {
                 }
             },
             &CustomMaterial::DiffuseGreen => {
-                let (r, g, b) = wave_length.clone().color().tuple(false);
+                let (r, g, b) = wave_length.color().tuple(false);
                 if event < r * 0.2 + g + b * 0.2 {
                     Event::Diffuse
                 } else {
@@ -50,7 +50,7 @@ impl Material<f64> for CustomMaterial {
                 }
             },
             &CustomMaterial::DiffuseBlue => {
-                let (r, g, b) = wave_length.clone().color().tuple(false);
+                let (r, g, b) = wave_length.color().tuple(false);
                 if event < r * 0.2 + g * 0.2 + b {
                     Event::Diffuse
                 } else {

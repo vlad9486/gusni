@@ -81,7 +81,7 @@ impl WaveLength {
                         TABLE[i].1.clone()
                     }
                 }
-            }
+            },
         }
         //let (_, (r, g, b)) = TABLE[(self.0 - TABLE[0].0) as usize].clone();
         //Rgb::new(r, g, b)
@@ -152,9 +152,7 @@ pub struct WaveLengthTrimmed {
 
 impl WaveLengthTrimmed {
     pub fn new() -> Self {
-        WaveLengthTrimmed {
-            position: 0,
-        }
+        WaveLengthTrimmed { position: 0 }
     }
 }
 
@@ -162,9 +160,7 @@ impl WaveLengthFactory for WaveLengthTrimmedFactory {
     type Iter = WaveLengthTrimmed;
 
     fn iter(&self) -> Self::Iter {
-        WaveLengthTrimmed {
-            position: 0,
-        }
+        WaveLengthTrimmed { position: 0 }
     }
 
     fn resolution(&self) -> usize {

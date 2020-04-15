@@ -16,9 +16,7 @@ use serde::{Serialize, Deserialize};
 use bincode::serialize;
 
 fn main() {
-    use self::CustomMaterial::{
-        DiffuseWhite, Glass, DiffuseGreen, DiffuseBlue, SemiMirrorRed, Light,
-    };
+    use self::CustomMaterial::{DiffuseWhite, Glass, DiffuseGreen, DiffuseBlue, SemiMirrorRed, Light};
 
     let scene = {
         let r = 100000.0;
@@ -34,9 +32,10 @@ fn main() {
         let b = Sphere::new(V3::new(-4.0, -6.0, 3.0), 3.99, Glass(true));
         let c = Sphere::new(V3::new(4.0, -7.5, 6.0), 2.5, SemiMirrorRed);
 
-        let source = Sphere::new(V3::new(0.0, 1000.0 + 9.98, 0.0), 1000.0, Light);
+        let source_0 = Sphere::new(V3::new(0.0, 1000.0 + 9.99, 4.0), 1000.0, Light);
+        let source_1 = Sphere::new(V3::new(0.0, 1000.0 + 9.99, -14.0), 1000.0, Light);
 
-        Arc::new(vec![zp, zn, yp, yn, xp, xn, a, b, c, source])
+        Arc::new(vec![zp, zn, yp, yn, xp, xn, a, b, c, source_0, source_1])
     };
 
     let eye = Arc::new(Eye {
@@ -59,12 +58,11 @@ fn main() {
                 let horizontal_resolution = 640;
                 let vertical_resolution = 360;
                 let mut rng = rand::thread_rng();
-                let mut buffer =
-                    Buffer::new(
-                        horizontal_resolution,
-                        vertical_resolution,
-                        WaveLengthTrimmedFactory,
-                    );
+                let mut buffer = Buffer::new(
+                    horizontal_resolution,
+                    vertical_resolution,
+                    WaveLengthTrimmedFactory,
+                );
                 let start = SystemTime::now();
                 let sample_count = 1;
                 for _ in 0..sample_count {

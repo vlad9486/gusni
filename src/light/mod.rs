@@ -30,7 +30,11 @@ impl Material<f64> for CustomMaterial {
                     let l = wave_length.0 / 1000.0;
                     let x = (0.9 - l) / 0.5;
                     let index = 1.51 + 0.04 * x * x;
-                    Event::Refract(if inverse ^ side.outer() { index } else { 1.0 / index })
+                    Event::Refract(if inverse ^ side.outer() {
+                        index
+                    } else {
+                        1.0 / index
+                    })
                 }
             },
             &CustomMaterial::DiffuseRed => {

@@ -134,7 +134,11 @@ where
 
     fn result<'a>(&'a self, ray: &Ray<C>, info: Self::Info) -> Intersect<'a, Self::Material, C> {
         let position = ray.position() + &(ray.direction() * info.time);
-        let radius = if info.side.outer() { self.radius } else { -self.radius };
+        let radius = if info.side.outer() {
+            self.radius
+        } else {
+            -self.radius
+        };
         let normal = &(&position - &self.center) / radius;
         Intersect {
             position: position,

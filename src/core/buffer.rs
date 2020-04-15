@@ -105,7 +105,9 @@ where
     pub fn write(&self, scale: f64, reverse: bool, buffer: &mut [u8]) {
         let mut position = 0;
         for beam in self.data.chunks(self.factory.resolution()) {
-            let color = self.factory.iter()
+            let color = self
+                .factory
+                .iter()
                 .enumerate()
                 .fold(Rgb::default(), |color, (i, wave)| {
                     let density = (beam[i] as f64) * scale

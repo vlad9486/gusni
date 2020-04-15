@@ -1,0 +1,105 @@
+[
+    {
+        "center": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": -99990.0
+        },
+        "radius": 100000.0,
+        "material": "DiffuseBlue"
+    },
+    {
+        "center": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": -100020.0
+        },
+        "radius": 100000.0,
+        "material": "DiffuseWhite"
+    },
+    {
+        "center": {
+            "x": 0.0,
+            "y": 100010.0,
+            "z": 0.0
+        },
+        "radius": 100000.0,
+        "material": "DiffuseWhite"
+    },
+    {
+        "center": {
+            "x": 0.0,
+            "y": -100010.0,
+            "z": 0.0
+        },
+        "radius": 100000.0,
+        "material": "DiffuseWhite"
+    },
+    {
+        "center": {
+            "x": 100010.0,
+            "y": 0.0,
+            "z": 0.0
+        },
+        "radius": 100000.0,
+        "material": "DiffuseGreen"
+    },
+    {
+        "center": {
+            "x": -100010.0,
+            "y": 0.0,
+            "z": 0.0
+        },
+        "radius": 100000.0,
+        "material": "DiffuseGreen"
+    },
+    {
+        "center": {
+            "x": -4.0,
+            "y": -6.0,
+            "z": 3.0
+        },
+        "radius": 4.0,
+        "material": {
+            "Glass": false
+        }
+    },
+    {
+        "center": {
+            "x": -4.0,
+            "y": -6.0,
+            "z": 3.0
+        },
+        "radius": 3.99,
+        "material": {
+            "Glass": true
+        }
+    },
+    {
+        "center": {
+            "x": 4.0,
+            "y": -7.5,
+            "z": 6.0
+        },
+        "radius": 2.5,
+        "material": "SemiMirrorRed"
+    },
+    {
+        "center": {
+            "x": 0.0,
+            "y": 1009.99,
+            "z": 4.0
+        },
+        "radius": 1000.0,
+        "material": "Light"
+    },
+    {
+        "center": {
+            "x": 0.0,
+            "y": 1009.99,
+            "z": -14.0
+        },
+        "radius": 1000.0,
+        "material": "Light"
+    }
+]

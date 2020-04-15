@@ -1,5 +1,8 @@
 use crate::core::{Material, WaveLength, Event, Side};
 
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize)]
 pub enum CustomMaterial {
     SemiMirrorRed,
     Glass(bool),

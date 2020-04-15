@@ -1,5 +1,6 @@
 extern crate gusni;
 extern crate serde;
+extern crate serde_json;
 extern crate bincode;
 extern crate rand;
 
@@ -7,7 +8,7 @@ use std::path::Path;
 use std::{fs::File, io::Write, time::SystemTime, thread, sync::Arc};
 
 use gusni::{
-    core::{Buffer, Eye, V3, WaveLengthFactory, WaveLengthTrimmedFactory},
+    core::{Buffer, Eye, WaveLengthFactory, WaveLengthTrimmedFactory},
     tree::Sphere,
     light::CustomMaterial,
 };
@@ -16,47 +17,16 @@ use serde::{Serialize, Deserialize};
 use bincode::serialize;
 
 fn main() {
-    use self::CustomMaterial::{DiffuseWhite, Glass, DiffuseGreen, DiffuseBlue, SemiMirrorRed, Light};
-
-    let scene = {
-        let r = 100000.0;
-
-        let zp = Sphere::new(V3::new(0.0, 0.0, -r + 10.0), r, DiffuseBlue);
-        let zn = Sphere::new(V3::new(0.0, 0.0, -r - 20.0), r, DiffuseWhite);
-        let yp = Sphere::new(V3::new(0.0, r + 10.0, 0.0), r, DiffuseWhite);
-        let yn = Sphere::new(V3::new(0.0, -r - 10.0, 0.0), r, DiffuseWhite);
-        let xp = Sphere::new(V3::new(r + 10.0, 0.0, 0.0), r, DiffuseGreen);
-        let xn = Sphere::new(V3::new(-r - 10.0, 0.0, 0.0), r, DiffuseGreen);
-
-        let a = Sphere::new(V3::new(-4.0, -6.0, 3.0), 4.0, Glass(false));
-        let b = Sphere::new(V3::new(-4.0, -6.0, 3.0), 3.99, Glass(true));
-        let c = Sphere::new(V3::new(4.0, -7.5, 6.0), 2.5, SemiMirrorRed);
-
-        let source_0 = Sphere::new(V3::new(0.0, 1000.0 + 9.99, 4.0), 1000.0, Light);
-        let source_1 = Sphere::new(V3::new(0.0, 1000.0 + 9.99, -14.0), 1000.0, Light);
-
-        Arc::new(vec![zp, zn, yp, yn, xp, xn, a, b, c, source_0, source_1])
-    };
-
-    let eye = Arc::new(Eye {
-        position: V3::new(0.0, 0.0, -19.0),
-
-        forward: V3::new(0.0, 0.0, 1.0),
-        right: V3::new(1.0, 0.0, 0.0),
-        up: V3::new(0.0, 1.0, 0.0),
-
-        width: 1.6,
-        height: 0.9,
-        distance: 0.8,
-    });
+    let scene: Arc<Vec<Sphere<CustomMaterial, f64>>> = Arc::new(serde_json::from_str(include_str!("scene.json")).unwrap());
+    let eye: Arc<Eye<f64>> = Arc::new(serde_json::from_str(include_str!("eye.json")).unwrap());
 
     let threads = (0..8)
         .map(|i| {
             let eye = eye.clone();
             let scene = scene.clone();
             thread::spawn(move || {
-                let horizontal_resolution = 640;
-                let vertical_resolution = 360;
+                let horizontal_resolution = 1920;
+                let vertical_resolution = 1080;
                 let mut rng = rand::thread_rng();
                 let mut buffer = Buffer::new(
                     horizontal_resolution,

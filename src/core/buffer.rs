@@ -52,7 +52,7 @@ where
     F: WaveLengthFactory,
 {
     pub fn new(width: usize, height: usize, factory: F) -> Self {
-        let capacity = width * height * factory.resolution();
+        let capacity = width * height * 3;
         let mut data = Vec::with_capacity(capacity);
         data.resize(capacity, 0.0);
         Buffer {
@@ -84,15 +84,19 @@ where
     {
         for i in 0..self.height {
             for j in 0..self.width {
-                for (k, l) in self.factory.iter().enumerate() {
+                for l in self.factory.iter() {
+                    let color = l.color();
                     let dx = rng.gen_range(-0.5, 0.5);
                     let dy = rng.gen_range(-0.5, 0.5);
                     let x = C::from(j).unwrap() + C::from(dx).unwrap();
                     let y = C::from(i).unwrap() + C::from(dy).unwrap();
                     let ray = eye.ray(x, y, self.width, self.height, l);
                     let photon = ray.trace(scene, rng);
-                    let index = (i * self.width + j) * self.factory.resolution() + k;
-                    self.data[index] += photon;
+                    let (r, g, b) = (color * photon).tuple(false);
+                    let index = i * self.width + j;
+                    self.data[index * 3 + 0] += r;
+                    self.data[index * 3 + 1] += g;
+                    self.data[index * 3 + 2] += b;
                 }
             }
         }
@@ -102,16 +106,9 @@ where
 
     pub fn write(&self, scale: f64, reverse: bool, buffer: &mut [u8]) {
         let mut position = 0;
-        for beam in self.data.chunks(self.factory.resolution()) {
-            let color = self
-                .factory
-                .iter()
-                .enumerate()
-                .fold(Rgb::default(), |color, (i, wave)| {
-                    let density = (beam[i] as f64) * scale
-                        / ((self.sample_count * self.factory.resolution()) as f64);
-                    color + wave.color() * density
-                });
+        for tuple in self.data.chunks(3) {
+            let color = Rgb::new(tuple[0].clone(), tuple[1].clone(), tuple[2].clone());
+            let color = color * (scale / ((self.sample_count * self.factory.resolution()) as f64));
             color.write(reverse, &mut buffer[position..(position + 3)]);
             position += 3;
         }
@@ -127,7 +124,7 @@ where
         assert_eq!(self.height, rhs.height);
 
         self.sample_count += rhs.sample_count;
-        for i in 0..(self.height * self.width * self.factory.resolution()) {
+        for i in 0..(self.height * self.width * 3) {
             self.data[i] += rhs.data[i];
         }
     }

@@ -25,8 +25,8 @@ fn main() {
             let eye = eye.clone();
             let scene = scene.clone();
             thread::spawn(move || {
-                let horizontal_resolution = 1920;
-                let vertical_resolution = 1080;
+                let horizontal_resolution = 0x780;
+                let vertical_resolution = 0x438;
                 let mut rng = rand::thread_rng();
                 let mut buffer = Buffer::new(
                     horizontal_resolution,

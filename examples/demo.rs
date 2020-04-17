@@ -5,10 +5,10 @@ extern crate bincode;
 extern crate rand;
 
 use std::path::Path;
-use std::{fs::File, io::Write, time::SystemTime, thread, sync::Arc};
+use std::{fs::File, io::Write, time::SystemTime, thread, sync::{Arc, mpsc}};
 
 use gusni::{
-    core::{Buffer, Eye, WaveLengthFactory, WaveLengthTrimmedFactory},
+    core::{Buffer, Report, Eye, WaveLengthFactory, WaveLengthTrimmedFactory},
     tree::Sphere,
     light::CustomMaterial,
 };
@@ -20,13 +20,16 @@ fn main() {
     let scene: Arc<Vec<Sphere<CustomMaterial, f64>>> = Arc::new(serde_json::from_str(include_str!("../scene.json")).unwrap());
     let eye: Arc<Eye<f64>> = Arc::new(serde_json::from_str(include_str!("../eye.json")).unwrap());
 
-    let threads = (0..8)
+    let (sender, receiver) = mpsc::channel();
+    let threads_number = 8;
+    let horizontal_resolution = 256 * 16;
+    let vertical_resolution = 256 * 9;
+    let threads = (0..threads_number)
         .map(|i| {
             let eye = eye.clone();
             let scene = scene.clone();
+            let sender = sender.clone();
             thread::spawn(move || {
-                let horizontal_resolution = 0x780;
-                let vertical_resolution = 0x438;
                 let mut rng = rand::thread_rng();
                 let mut buffer = Buffer::new(
                     horizontal_resolution,
@@ -35,13 +38,15 @@ fn main() {
                     WaveLengthTrimmedFactory,
                 );
                 let start = SystemTime::now();
-                let sample_count = 1;
-                for _ in 0..sample_count {
-                    buffer.trace(&mut rng, &eye, scene.as_ref(), None, None);
-                }
+                let report = Report {
+                    id: i,
+                    interval: 0x1000,
+                    sender: &sender,
+                };
+                buffer.trace(&mut rng, &eye, scene.as_ref(), None, Some(report));
                 let traced = SystemTime::now();
                 let duration = traced.duration_since(start).unwrap();
-                let ray_per_pixel = sample_count * WaveLengthTrimmedFactory.resolution();
+                let ray_per_pixel = WaveLengthTrimmedFactory.resolution();
                 let pixels = horizontal_resolution * vertical_resolution;
                 let rays = (ray_per_pixel as u128) * (pixels as u128);
                 let per_ray = duration.as_nanos() / rays;
@@ -53,6 +58,28 @@ fn main() {
             })
         })
         .collect::<Vec<_>>();
+
+    thread::spawn(move || {
+        let ray_per_pixel = WaveLengthTrimmedFactory.resolution();
+        let total_pixels = horizontal_resolution * vertical_resolution;
+        let mut labels = (0..threads_number)
+            .map(|_| (SystemTime::now(), 0))
+            .collect::<Vec<_>>();
+        for progress in receiver {
+            let &(ref time, ref pixels) = &labels[progress.id];
+            let new_time = SystemTime::now();
+            let new_pixels = progress.index;
+            let delta_time = new_time.duration_since(time.clone()).unwrap();
+            let delta_pixels = new_pixels - pixels.clone();
+            let speed = ((delta_pixels * ray_per_pixel) as f64) / (delta_time.as_micros() as f64);
+            println!(
+                "rays per second: {:08.8}, progress: {:0.8}",
+                speed * 1_000_000.0,
+                (new_pixels as f64) / (total_pixels as f64),
+            );
+            labels[progress.id] = (new_time, new_pixels);
+        }
+    });
 
     let start = SystemTime::now();
     let buffer = threads

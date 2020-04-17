@@ -49,7 +49,7 @@ where
         S: Scene<C>,
         R: Rng,
     {
-        use std::f32::consts::PI;
+        use std::f64::consts::PI;
 
         let max_level = 7;
         if level > max_level {
@@ -67,8 +67,8 @@ where
                     Event::Emission(d) => d,
                     Event::Decay => 0.0,
                     Event::Diffuse => {
-                        let a = C::from(rng.gen_range(0.0, 2.0 * PI)).unwrap();
-                        let z = C::from(rng.gen_range(-1.0, 1.0)).unwrap();
+                        let a = C::from(rng.gen_range(0.0f64, 2.0f64 * PI)).unwrap();
+                        let z = C::from(rng.gen_range(-1.0f64, 1.0f64)).unwrap();
                         let new = self.diffuse(&result.position, &result.normal, a, z);
                         new.trace_inner(scene, rng, level + 1)
                     },

@@ -1,11 +1,13 @@
 {
     "cSpell.words": [
         "bincode",
+        "byteorder",
         "consts",
         "fract",
         "gusni",
         "nanos",
         "rustfmt",
+        "structopt",
         "typenum"
     ]
 }

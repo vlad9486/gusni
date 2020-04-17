@@ -3,7 +3,10 @@ use super::ray::Ray;
 use super::scene::Scene;
 use super::wave::{WaveLength, Rgb, WaveLengthFactory};
 
-use std::ops::{Add, AddAssign};
+use std::{
+    ops::{Add, AddAssign},
+    sync::mpsc,
+};
 use serde::{Serialize, Deserialize};
 use num::Float;
 use rand::Rng;
@@ -36,6 +39,20 @@ where
     }
 }
 
+#[derive(Debug)]
+pub struct Progress {
+    pub id: usize,
+    pub sample: usize,
+    pub index: usize,
+}
+
+pub struct Report<'a> {
+    pub id: usize,
+    pub interval: usize,
+    pub sender: &'a mpsc::Sender<Progress>,
+}
+
+#[derive(Clone)]
 pub struct Buffer<F>
 where
     F: WaveLengthFactory,
@@ -51,15 +68,17 @@ impl<F> Buffer<F>
 where
     F: WaveLengthFactory,
 {
-    pub fn new(width: usize, height: usize, factory: F) -> Self {
-        let capacity = width * height * 3;
-        let mut data = Vec::with_capacity(capacity);
-        data.resize(capacity, 0.0);
+    pub fn new(width: usize, height: usize, data: Option<Vec<f64>>, factory: F) -> Self {
         Buffer {
             factory: factory,
             width: width,
             height: height,
-            data: data,
+            data: data.unwrap_or({
+                let capacity = width * height * 3;
+                let mut data = Vec::with_capacity(capacity);
+                data.resize(capacity, 0.0);
+                data
+            }),
             sample_count: 0,
         }
     }
@@ -76,7 +95,18 @@ where
         self.height
     }
 
-    pub fn trace<S, C, R>(&mut self, rng: &mut R, eye: &Eye<C>, scene: &S)
+    pub fn data(&self) -> &[f64] {
+        self.data.as_ref()
+    }
+
+    pub fn trace<S, C, R>(
+        &mut self,
+        rng: &mut R,
+        eye: &Eye<C>,
+        scene: &S,
+        terminate_receiver: Option<&mpsc::Receiver<()>>,
+        report: Option<Report<'_>>,
+    ) -> bool
     where
         S: Scene<C>,
         C: Float,
@@ -84,6 +114,22 @@ where
     {
         for i in 0..self.height {
             for j in 0..self.width {
+                let index = i * self.width + j;
+                if let &Some(ref report) = &report {
+                    if index % report.interval == 0 {
+                        let progress = Progress {
+                            id: report.id,
+                            sample: self.sample_count,
+                            index: index,
+                        };
+                        report.sender.send(progress).unwrap();
+                    }
+                }
+                if self.sample_count == 0 {
+                    self.data[index * 3 + 0] = 0.0;
+                    self.data[index * 3 + 1] = 0.0;
+                    self.data[index * 3 + 2] = 0.0;
+                }
                 for l in self.factory.iter() {
                     let color = l.color();
                     let dx = rng.gen_range(-0.5, 0.5);
@@ -93,33 +139,48 @@ where
                     let ray = eye.ray(x, y, self.width, self.height, l);
                     let photon = ray.trace(scene, rng);
                     let (r, g, b) = (color * photon).tuple(false);
-                    let index = i * self.width + j;
                     self.data[index * 3 + 0] += r;
                     self.data[index * 3 + 1] += g;
                     self.data[index * 3 + 2] += b;
+                }
+                if let Some(terminate_receiver) = terminate_receiver {
+                    match terminate_receiver.try_recv() {
+                        Ok(()) => {
+                            self.sample_count = 0;
+                            return false;
+                        },
+                        _ => (),
+                    }
                 }
             }
         }
 
         self.sample_count += 1;
+        true
     }
 
     pub fn write(&self, scale: f64, reverse: bool, buffer: &mut [u8]) {
-        let mut position = 0;
-        for tuple in self.data.chunks(3) {
-            let color = Rgb::new(tuple[0].clone(), tuple[1].clone(), tuple[2].clone());
-            let color = color * (scale / ((self.sample_count * self.factory.resolution()) as f64));
-            color.write(reverse, &mut buffer[position..(position + 3)]);
-            position += 3;
+        if self.sample_count != 0 {
+            let mut position = 0;
+            for tuple in self.data.chunks(3) {
+                let color = Rgb::new(tuple[0].clone(), tuple[1].clone(), tuple[2].clone());
+                let color = color * (scale / ((self.sample_count * self.factory.resolution()) as f64));
+                color.write(reverse, &mut buffer[position..(position + 3)]);
+                position += 3;
+            }
         }
     }
 }
 
-impl<F> AddAssign for Buffer<F>
+impl<F> AddAssign<&mut Self> for Buffer<F>
 where
     F: WaveLengthFactory,
 {
-    fn add_assign(&mut self, rhs: Self) {
+    fn add_assign(&mut self, rhs: &mut Self) {
+        if rhs.sample_count == 0 {
+            return;
+        };
+
         assert_eq!(self.width, rhs.width);
         assert_eq!(self.height, rhs.height);
 
@@ -127,6 +188,8 @@ where
         for i in 0..(self.height * self.width * 3) {
             self.data[i] += rhs.data[i];
         }
+
+        rhs.sample_count = 0;
     }
 }
 
@@ -138,7 +201,8 @@ where
 
     fn add(self, rhs: Self) -> Self::Output {
         let mut s = self;
-        s += rhs;
+        let mut rhs = rhs;
+        s += &mut rhs;
         s
     }
 }

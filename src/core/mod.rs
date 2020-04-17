@@ -10,4 +10,4 @@ pub use self::algebra::V3;
 pub use self::wave::{
     Rgb, WaveLength, WaveLengthFactory, WaveLengthLinearFactory, WaveLengthTrimmedFactory,
 };
-pub use self::buffer::{Buffer, Eye};
+pub use self::buffer::{Buffer, Eye, Progress, Report};

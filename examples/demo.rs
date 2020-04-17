@@ -17,8 +17,8 @@ use serde::{Serialize, Deserialize};
 use bincode::serialize;
 
 fn main() {
-    let scene: Arc<Vec<Sphere<CustomMaterial, f64>>> = Arc::new(serde_json::from_str(include_str!("scene.json")).unwrap());
-    let eye: Arc<Eye<f64>> = Arc::new(serde_json::from_str(include_str!("eye.json")).unwrap());
+    let scene: Arc<Vec<Sphere<CustomMaterial, f64>>> = Arc::new(serde_json::from_str(include_str!("../scene.json")).unwrap());
+    let eye: Arc<Eye<f64>> = Arc::new(serde_json::from_str(include_str!("../eye.json")).unwrap());
 
     let threads = (0..8)
         .map(|i| {
@@ -31,12 +31,13 @@ fn main() {
                 let mut buffer = Buffer::new(
                     horizontal_resolution,
                     vertical_resolution,
+                    None,
                     WaveLengthTrimmedFactory,
                 );
                 let start = SystemTime::now();
                 let sample_count = 1;
                 for _ in 0..sample_count {
-                    buffer.trace(&mut rng, &eye, scene.as_ref());
+                    buffer.trace(&mut rng, &eye, scene.as_ref(), None, None);
                 }
                 let traced = SystemTime::now();
                 let duration = traced.duration_since(start).unwrap();

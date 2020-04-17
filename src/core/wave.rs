@@ -95,6 +95,7 @@ pub trait WaveLengthFactory {
     fn resolution(&self) -> usize;
 }
 
+#[derive(Clone)]
 pub struct WaveLengthLinearFactory {
     resolution: usize,
 }
@@ -144,6 +145,7 @@ impl Iterator for WaveLengthLinear {
     }
 }
 
+#[derive(Clone)]
 pub struct WaveLengthTrimmedFactory;
 
 pub struct WaveLengthTrimmed {

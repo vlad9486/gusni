@@ -63,23 +63,20 @@ where
                 let fate = result
                     .material
                     .fate(&self.wave_length, result.side, emission, event);
+                let a = C::from(rng.gen_range(0.0f64, 2.0f64 * PI)).unwrap();
+                let z = C::from(rng.gen_range(-1.0f64, 1.0f64)).unwrap();
                 match fate {
                     Event::Emission(d) => d,
                     Event::Decay => 0.0,
-                    Event::Diffuse => {
-                        let a = C::from(rng.gen_range(0.0f64, 2.0f64 * PI)).unwrap();
-                        let z = C::from(rng.gen_range(-1.0f64, 1.0f64)).unwrap();
-                        let new = self.diffuse(&result.position, &result.normal, a, z);
-                        new.trace_inner(scene, rng, level + 1)
-                    },
-                    Event::Reflect => {
-                        let new = self.reflect(&result.position, &result.normal);
-                        new.trace_inner(scene, rng, level + 1)
-                    },
-                    Event::Refract(factor) => {
-                        let new = self.refract(&result.position, &result.normal, factor);
-                        new.trace_inner(scene, rng, level + 1)
-                    },
+                    Event::Diffuse => self
+                        .diffuse(&result.position, &result.normal, a, z)
+                        .trace_inner(scene, rng, level + 1),
+                    Event::Reflect(factor) => self
+                        .reflect(&result.position, &result.normal, factor, a, z)
+                        .trace_inner(scene, rng, level + 1),
+                    Event::Refract(factor) => self
+                        .refract(&result.position, &result.normal, factor)
+                        .trace_inner(scene, rng, level + 1),
                 }
             },
             None => 0.0,
@@ -101,10 +98,11 @@ where
         }
     }
 
-    fn reflect(&self, position: &V3<C>, normal: &V3<C>) -> Self {
+    fn reflect(&self, position: &V3<C>, normal: &V3<C>, factor: C, a: C, z: C) -> Self {
         let incident = &self.direction;
         let dot_product = incident * normal;
         let direction = &(normal * (C::from(-2.0).unwrap() * dot_product)) + incident;
+        let _ = (factor, a, z);
 
         Ray {
             position: position + &(&direction * C::epsilon()),
@@ -126,7 +124,7 @@ where
                 wave_length: self.wave_length.clone(),
             }
         } else {
-            self.reflect(position, normal)
+            self.reflect(position, normal, C::one(), C::zero(), C::zero())
         }
     }
 }

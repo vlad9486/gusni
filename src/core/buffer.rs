@@ -164,7 +164,8 @@ where
             let mut position = 0;
             for tuple in self.data.chunks(3) {
                 let color = Rgb::new(tuple[0].clone(), tuple[1].clone(), tuple[2].clone());
-                let color = color * (scale / ((self.sample_count * self.factory.resolution()) as f64));
+                let color =
+                    color * (scale / ((self.sample_count * self.factory.resolution()) as f64));
                 color.write(reverse, &mut buffer[position..(position + 3)]);
                 position += 3;
             }

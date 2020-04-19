@@ -25,7 +25,7 @@ where
     Emission(f64),
     Decay,
     Diffuse,
-    Reflect,
+    Reflect(C),
     Refract(C),
 }
 

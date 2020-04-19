@@ -5,7 +5,13 @@ extern crate bincode;
 extern crate rand;
 
 use std::path::Path;
-use std::{fs::File, io::Write, time::SystemTime, thread, sync::{Arc, mpsc}};
+use std::{
+    fs::File,
+    io::Write,
+    time::SystemTime,
+    thread,
+    sync::{Arc, mpsc},
+};
 
 use gusni::{
     core::{Buffer, Report, Eye, WaveLengthFactory, WaveLengthTrimmedFactory},
@@ -17,7 +23,8 @@ use serde::{Serialize, Deserialize};
 use bincode::serialize;
 
 fn main() {
-    let scene: Arc<Vec<Sphere<CustomMaterial, f64>>> = Arc::new(serde_json::from_str(include_str!("../scene.json")).unwrap());
+    let scene: Arc<Vec<Sphere<CustomMaterial, f64>>> =
+        Arc::new(serde_json::from_str(include_str!("../scene.json")).unwrap());
     let eye: Arc<Eye<f64>> = Arc::new(serde_json::from_str(include_str!("../eye.json")).unwrap());
 
     let (sender, receiver) = mpsc::channel();

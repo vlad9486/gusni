@@ -5,16 +5,13 @@ use serde::{Serialize, Deserialize};
 #[derive(Serialize, Deserialize)]
 pub enum CustomMaterial {
     SemiMirrorRed,
-    Glass {
-        inverse: bool,
-    },
+    Mirror,
+    Glass { inverse: bool },
     DiffuseRed,
     DiffuseGreen,
     DiffuseBlue,
     DiffuseWhite,
-    Light {
-        temperature: f64,
-    },
+    Light { temperature: f64 },
 }
 
 impl Material<f64> for CustomMaterial {
@@ -22,17 +19,14 @@ impl Material<f64> for CustomMaterial {
         match self {
             &CustomMaterial::SemiMirrorRed => {
                 let (r, _, _) = wave_length.color().tuple(false);
-                if event < r {
+                if event < r * 0.5 {
                     Event::Diffuse
-                } else if event < 2.0 * r {
-                    Event::Reflect
                 } else {
-                    Event::Decay
+                    Event::Reflect(1.0)
                 }
             },
-            &CustomMaterial::Glass {
-                inverse: inverse,
-            } => {
+            &CustomMaterial::Mirror => Event::Reflect(1.0),
+            &CustomMaterial::Glass { inverse: inverse } => {
                 if event < 0.0 {
                     Event::Diffuse
                 } else {
@@ -71,9 +65,7 @@ impl Material<f64> for CustomMaterial {
                 }
             },
             &CustomMaterial::DiffuseWhite => Event::Diffuse,
-            &CustomMaterial::Light {
-                temperature: t,
-            } => {
+            &CustomMaterial::Light { temperature: t } => {
                 if emission < 1.0 {
                     let l = wave_length.0;
                     let n = b(l, t);
@@ -105,6 +97,8 @@ mod test {
     fn basic() {
         use super::b;
 
-        (360..830).map(|l| b(l as f64, 6000.0)).for_each(|b| println!("{}", b));
+        (360..830)
+            .map(|l| b(l as f64, 6000.0))
+            .for_each(|b| println!("{}", b));
     }
 }

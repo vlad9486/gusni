@@ -49,7 +49,7 @@ where
         S: Scene<C>,
         R: Rng,
     {
-        use std::f64::consts::PI;
+        use std::f64::consts::TAU;
 
         let max_level = 7;
         if level > max_level {
@@ -58,13 +58,13 @@ where
 
         match scene.find_intersect(self) {
             Some(result) => {
-                let emission = rng.gen_range(0.0, 1.0);
-                let event = rng.gen_range(0.0, 1.0);
+                let emission = rng.gen_range(0.0..1.0);
+                let event = rng.gen_range(0.0..1.0);
                 let fate = result
                     .material
                     .fate(&self.wave_length, result.side, emission, event);
-                let a = C::from(rng.gen_range(0.0f64, 2.0f64 * PI)).unwrap();
-                let z = C::from(rng.gen_range(-1.0f64, 1.0f64)).unwrap();
+                let a = C::from(rng.gen_range(0.0f64..TAU)).unwrap();
+                let z = C::from(rng.gen_range(-1.0f64..1.0f64)).unwrap();
                 match fate {
                     Event::Emission(d) => d,
                     Event::Decay => 0.0,

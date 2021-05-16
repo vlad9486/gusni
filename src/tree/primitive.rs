@@ -18,10 +18,7 @@ where
 
     fn find_intersect<'a>(v: &'a [Self], ray: &Ray<C>) -> Option<(&'a Self, Self::Info)> {
         v.iter()
-            .flat_map(|this| match this.intersect(ray) {
-                Some(info) => Some((this, info)),
-                None => None,
-            })
+            .flat_map(|this| this.intersect(ray).map(|info| (this, info)))
             .min_by(|lhs, rhs| lhs.1.partial_cmp(&rhs.1).unwrap_or(Ordering::Less))
     }
 }
@@ -102,7 +99,7 @@ where
 
         let zero = <C as Zero>::zero();
 
-        let q = &self.center - &ray.position();
+        let q = &self.center - ray.position();
         let p = ray.direction();
         let r = self.radius;
 

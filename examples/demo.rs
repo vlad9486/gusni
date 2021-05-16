@@ -28,9 +28,9 @@ fn main() {
     let eye: Arc<Eye<f64>> = Arc::new(serde_json::from_str(include_str!("../eye.json")).unwrap());
 
     let (sender, receiver) = mpsc::channel();
-    let threads_number = 8;
-    let horizontal_resolution = 256 * 16;
-    let vertical_resolution = 256 * 9;
+    let threads_number = 6;
+    let horizontal_resolution = 64 * 16;
+    let vertical_resolution = 64 * 9;
     let threads = (0..threads_number)
         .map(|i| {
             let eye = eye.clone();

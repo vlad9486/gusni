@@ -52,27 +52,30 @@ impl fmt::Display for Error {
 
 impl Command {
     pub fn recognize(s: &str) -> Result<Self, Exception> {
-        let mut s = s.split(" ");
+        let mut s = s.split_whitespace();
         let d = s.next().ok_or(Exception::Error(Error::Empty))?;
         match d {
             "exit" => Err(Exception::Exit),
             "start" => {
-                let width = s.next()
+                let width = s
+                    .next()
                     .ok_or(Exception::Error(Error::TraceWrongWidth(None)))?
                     .parse()
                     .map_err(|e| Exception::Error(Error::TraceWrongWidth(Some(e))))?;
-                let height = s.next()
+                let height = s
+                    .next()
                     .ok_or(Exception::Error(Error::TraceWrongHeight(None)))?
                     .parse()
                     .map_err(|e| Exception::Error(Error::TraceWrongHeight(Some(e))))?;
-                let threads = s.next()
+                let threads = s
+                    .next()
                     .ok_or(Exception::Error(Error::TraceWrongThreads(None)))?
                     .parse()
                     .map_err(|e| Exception::Error(Error::TraceWrongThreads(Some(e))))?;
-                let scene_file = s.next()
+                let scene_file = s
+                    .next()
                     .ok_or(Exception::Error(Error::TraceWrongSceneFile))?;
-                let eye_file = s.next()
-                    .ok_or(Exception::Error(Error::TraceWrongEyeFile))?;
+                let eye_file = s.next().ok_or(Exception::Error(Error::TraceWrongEyeFile))?;
                 let state_file = s.next();
                 Ok(Command::Start {
                     width: width,
@@ -84,12 +87,12 @@ impl Command {
                 })
             },
             "image" => {
-                let scale = s.next()
+                let scale = s
+                    .next()
                     .ok_or(Exception::Error(Error::ImageWrongScale(None)))?
                     .parse()
                     .map_err(|e| Exception::Error(Error::ImageWrongScale(Some(e))))?;
-                let file = s.next()
-                    .ok_or(Exception::Error(Error::ImageWrongTgaFile))?;
+                let file = s.next().ok_or(Exception::Error(Error::ImageWrongTgaFile))?;
                 Ok(Command::Image {
                     scale: scale,
                     tga_file: PathBuf::from(OsString::from(file)),

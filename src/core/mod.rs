@@ -3,6 +3,7 @@ mod ray;
 mod scene;
 mod wave;
 mod buffer;
+mod worker;
 
 pub use self::scene::{Scene, Side, Intersect, Event, Material};
 pub use self::ray::Ray;

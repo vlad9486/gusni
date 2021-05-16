@@ -132,8 +132,8 @@ where
                 }
                 for l in self.factory.iter() {
                     let color = l.color();
-                    let dx = rng.gen_range(-0.5, 0.5);
-                    let dy = rng.gen_range(-0.5, 0.5);
+                    let dx = rng.gen_range(-0.5..0.5);
+                    let dy = rng.gen_range(-0.5..0.5);
                     let x = C::from(j).unwrap() + C::from(dx).unwrap();
                     let y = C::from(i).unwrap() + C::from(dy).unwrap();
                     let ray = eye.ray(x, y, self.width, self.height, l);
@@ -144,12 +144,9 @@ where
                     self.data[index * 3 + 2] += b;
                 }
                 if let Some(terminate_receiver) = terminate_receiver {
-                    match terminate_receiver.try_recv() {
-                        Ok(()) => {
-                            self.sample_count = 0;
-                            return false;
-                        },
-                        _ => (),
+                    if let Ok(()) = terminate_receiver.try_recv() {
+                        self.sample_count = 0;
+                        return false;
                     }
                 }
             }
@@ -163,7 +160,7 @@ where
         if self.sample_count != 0 {
             let mut position = 0;
             for tuple in self.data.chunks(3) {
-                let color = Rgb::new(tuple[0].clone(), tuple[1].clone(), tuple[2].clone());
+                let color = Rgb::new(tuple[0], tuple[1], tuple[2]);
                 let color =
                     color * (scale / ((self.sample_count * self.factory.resolution()) as f64));
                 color.write(reverse, &mut buffer[position..(position + 3)]);

@@ -41,7 +41,7 @@ impl TracerContext {
                         id: id,
                         interval: 0x1000,
                         sender: &progress_sender,
-                    })
+                    }),
                 );
                 if !complete {
                     println!("stopping {}", id);
@@ -81,37 +81,27 @@ impl Tracer {
         eye_file: PathBuf,
         state_file: Option<PathBuf>,
     ) -> Self {
-        use std::{
-            fs,
-            fs::File,
-            io::Read,
-            mem,
-        };
-        use byteorder::{LittleEndian, ByteOrder};
-        use gusni::{
-            tree::Sphere,
-            light::CustomMaterial,
-        };
+        use std::{fs, fs::File, io::Read, mem, convert::TryFrom};
+        use gusni::{tree::Sphere, light::CustomMaterial};
 
         let buffer = if let Some(state_file) = state_file {
-            let mut size = [0; mem::size_of::<(u64, u64)>()];
+            let mut size = [0; mem::size_of::<u64>() * 2];
             let mut state_file = File::open(state_file).unwrap();
-            state_file.read(size.as_mut()).unwrap();
-            let width = LittleEndian::read_u64(&size[0x00..0x08]) as usize;
-            let height = LittleEndian::read_u64(&size[0x08..0x10]) as usize;
-    
+            state_file.read_exact(size.as_mut()).unwrap();
+            let width = u64::from_le_bytes(TryFrom::try_from(&size[0x00..0x08]).unwrap()) as usize;
+            let height = u64::from_le_bytes(TryFrom::try_from(&size[0x08..0x10]).unwrap()) as usize;
+
             let s = mem::size_of::<f64>();
             let capacity = width * height * 3 * s;
-            let mut byte_buffer = Vec::with_capacity(capacity);
-            byte_buffer.resize(capacity, 0);
-            state_file.read(byte_buffer.as_mut()).unwrap();
+            let mut byte_buffer = vec![0; capacity];
+            state_file.read_exact(byte_buffer.as_mut()).unwrap();
 
             let mut data = Vec::with_capacity(width * height * 3);
             data.resize(capacity, 0.0);
 
             for i in 0..(width * height * 3) {
-                let f = LittleEndian::read_f64(&byte_buffer[(i * s)..((i + 1) * s)]);
-                data[i] = f;
+                let a = TryFrom::try_from(&byte_buffer[(i * s)..((i + 1) * s)]).unwrap();
+                data[i] = f64::from_le_bytes(a);
             }
 
             Buffer::new(width, height, Some(data), WaveLengthTrimmedFactory)
@@ -121,11 +111,10 @@ impl Tracer {
         let buffer = Arc::new(Mutex::new(buffer));
 
         let scene_json = fs::read_to_string(scene_file.as_path()).unwrap();
-        let scene: Arc<Vec<Sphere<CustomMaterial, f64>>> = 
+        let scene: Arc<Vec<Sphere<CustomMaterial, f64>>> =
             Arc::new(serde_json::from_str(scene_json.as_str()).unwrap());
         let eye_json = fs::read_to_string(eye_file.as_path()).unwrap();
-        let eye: Arc<Eye<f64>> = 
-            Arc::new(serde_json::from_str(eye_json.as_str()).unwrap());
+        let eye: Arc<Eye<f64>> = Arc::new(serde_json::from_str(eye_json.as_str()).unwrap());
 
         let (progress_sender, progress_receiver) = mpsc::channel();
 
@@ -157,17 +146,13 @@ impl Tracer {
     }
 
     pub fn image(&self, scale: f64, tga_file: PathBuf) {
-        use std::{
-            fs::File,
-            io::Write,
-        };
-        use byteorder::{LittleEndian, ByteOrder};
+        use std::{fs::File, io::Write};
 
         let buffer = self.buffer.lock().unwrap();
 
         let mut tga_header = [0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 24, 0];
-        LittleEndian::write_u16(&mut tga_header[12..14], buffer.width() as u16);
-        LittleEndian::write_u16(&mut tga_header[14..16], buffer.height() as u16);
+        tga_header[12..14].clone_from_slice(&(buffer.width() as u16).to_le_bytes());
+        tga_header[14..16].clone_from_slice(&(buffer.height() as u16).to_le_bytes());
 
         let mut tga_buffer = Vec::new();
         tga_buffer.resize(3 * buffer.width() * buffer.height(), 0);
@@ -179,36 +164,27 @@ impl Tracer {
     }
 
     pub fn stop(self, state_file: Option<PathBuf>) {
-        use std::{
-            fs::File,
-            io::Write,
-            mem,
-        };
-        use byteorder::{LittleEndian, ByteOrder};
+        use std::{fs::File, io::Write, mem};
 
-        self
-            .contexts
-            .into_iter()
-            .for_each(|mut context| {
-                context.stop();
-            });
+        self.contexts.into_iter().for_each(|mut context| {
+            context.stop();
+        });
         self.progress_receiver.join().unwrap();
         if let Some(state_file) = state_file {
             let buffer = self.buffer.lock().unwrap();
 
-            let mut size = [0; mem::size_of::<(u64, u64)>()];
-            LittleEndian::write_u64(&mut size[0x00..0x08], buffer.width() as u64);
-            LittleEndian::write_u64(&mut size[0x08..0x10], buffer.height() as u64);
+            let mut size = [0; mem::size_of::<u64>() * 2];
+            size[0x00..0x08].clone_from_slice(&(buffer.width() as u64).to_le_bytes());
+            size[0x08..0x10].clone_from_slice(&(buffer.height() as u64).to_le_bytes());
             let mut state_file = File::create(state_file).unwrap();
             state_file.write_all(size.as_ref()).unwrap();
 
             let s = mem::size_of::<f64>();
             let capacity = s * buffer.data().len();
-            let mut byte_buffer = Vec::with_capacity(capacity);
-            byte_buffer.resize(capacity, 0);
+            let mut byte_buffer = vec![0; capacity];
             for i in 0..buffer.data().len() {
                 let f = buffer.data()[i];
-                LittleEndian::write_f64(&mut byte_buffer[(i * s)..((i + 1) * s)], f);
+                byte_buffer[(i * s)..((i + 1) * s)].clone_from_slice(&f.to_le_bytes());
             }
             state_file.write_all(byte_buffer.as_ref()).unwrap();
         }

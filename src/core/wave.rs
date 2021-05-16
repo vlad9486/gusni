@@ -67,13 +67,12 @@ impl WaveLength {
 
         match self {
             &WaveLength(ref l) => {
-                let l = l.clone();
                 let first = TABLE.first().unwrap().0;
                 let last = TABLE.last().unwrap().0;
-                if l < first || l > last {
+                if *l < first || *l > last {
                     Rgb::new(0.0, 0.0, 0.0)
                 } else {
-                    let i = (l - first) as usize;
+                    let i = (*l - first) as usize;
                     let l = l.fract();
                     if l > <f64 as Float>::epsilon() {
                         TABLE[i].1.clone() * (1.0 - l) + TABLE[i + 1].1.clone() * l
@@ -83,8 +82,6 @@ impl WaveLength {
                 }
             },
         }
-        //let (_, (r, g, b)) = TABLE[(self.0 - TABLE[0].0) as usize].clone();
-        //Rgb::new(r, g, b)
     }
 }
 
@@ -152,8 +149,8 @@ pub struct WaveLengthTrimmed {
     position: usize,
 }
 
-impl WaveLengthTrimmed {
-    pub fn new() -> Self {
+impl Default for WaveLengthTrimmed {
+    fn default() -> Self {
         WaveLengthTrimmed { position: 0 }
     }
 }

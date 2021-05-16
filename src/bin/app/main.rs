@@ -1,5 +1,7 @@
 #![forbid(unsafe_code)]
 #![allow(non_shorthand_field_patterns)]
+#![allow(clippy::redundant_field_names)]
+#![allow(clippy::match_ref_pats)]
 
 mod tracer;
 mod command;
@@ -16,7 +18,7 @@ fn main() {
     loop {
         s.clear();
         io::stdin().read_line(&mut s).unwrap();
-        match Command::recognize(s.as_str().trim_end_matches("\n")) {
+        match Command::recognize(s.as_str().trim_end_matches('\n')) {
             Err(Exception::Exit) => break,
             Err(Exception::Error(e)) => eprintln!("command parsing error: {}", e),
             Ok(Command::Start {
@@ -26,7 +28,11 @@ fn main() {
                 scene_file: scene_file,
                 eye_file: eye_file,
                 state_file: state_file,
-            }) => context = Some(Tracer::start(width, height, threads, scene_file, eye_file, state_file)),
+            }) => {
+                context = Some(Tracer::start(
+                    width, height, threads, scene_file, eye_file, state_file,
+                ))
+            },
             Ok(Command::Image {
                 scale: scale,
                 tga_file: tga_file,
@@ -37,8 +43,10 @@ fn main() {
             },
             Ok(Command::Stop {
                 state_file: state_file,
-            }) => if let Some(context) = context.take() {
-                Tracer::stop(context, state_file)
+            }) => {
+                if let Some(context) = context.take() {
+                    Tracer::stop(context, state_file)
+                }
             },
         };
     }
